@@ -209,7 +209,7 @@ export default function MaskCollection() {
                 SELECT ARTIFACT SPECIFICATION
               </span>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {maskCollection.masks.map((mask, idx) => (
                   <button
                     key={mask.id}

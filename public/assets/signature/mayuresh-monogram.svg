@@ -1,0 +1,46 @@
+<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer precision corner ticks (technical aesthetic) -->
+  <path d="M 6 18 V 6 H 18" stroke="currentColor" stroke-width="2" opacity="0.4" />
+  <path d="M 114 18 V 6 H 102" stroke="currentColor" stroke-width="2" opacity="0.4" />
+  <path d="M 6 102 V 114 H 18" stroke="currentColor" stroke-width="2" opacity="0.4" />
+  <path d="M 114 102 V 114 H 102" stroke="currentColor" stroke-width="2" opacity="0.4" />
+
+  <!-- Monogram Triangle with Apex Flourish Loop -->
+  <path
+    d="M 20 90 L 58 18 C 61 11, 65 7, 68 9 C 71 11, 68 18, 62 24 L 100 90 Z"
+    stroke="currentColor"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Inscribed Sacred Circle -->
+  <circle
+    cx="60"
+    cy="62"
+    r="24"
+    stroke="currentColor"
+    stroke-width="2.5"
+    opacity="0.85"
+  />
+
+  <!-- Authentic 'M' Emblem inside Circle -->
+  <path
+    d="M 48 76 V 46 L 60 62 L 72 46 V 76"
+    stroke="currentColor"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Voltage Lime Horizon Strike -->
+  <line
+    x1="16"
+    y1="90"
+    x2="104"
+    y2="90"
+    stroke="#D2FD52"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
+</svg>

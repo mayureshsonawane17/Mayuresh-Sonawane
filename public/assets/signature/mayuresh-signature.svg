@@ -1,0 +1,54 @@
+<svg viewBox="0 0 760 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 1. The Monogram Triangle with Apex Flourish Loop -->
+  <path
+    d="M 26 280 L 138 72 C 146 50, 154 22, 160 24 C 166 26, 158 52, 142 66 C 134 74, 165 96, 216 114 L 266 256 L 26 280 Z"
+    stroke="currentColor"
+    stroke-width="3.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="sig-path-triangle"
+  />
+  <!-- 2. The Inscribed Oval / Deathly Hallows Circle -->
+  <path
+    d="M 134 122 C 86 122, 64 165, 68 215 C 72 270, 96 320, 136 322 C 180 324, 204 275, 200 218 C 196 160, 172 122, 134 122 Z"
+    stroke="currentColor"
+    stroke-width="3.0"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="sig-path-circle"
+  />
+  <!-- 3. The Stylized 'M' inside the Monogram -->
+  <path
+    d="M 124 276 L 124 164 L 156 222 L 188 172 L 198 285"
+    stroke="currentColor"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="sig-path-m"
+  />
+  <!-- 4. Cursive 'ayuresh' Script Flow -->
+  <path
+    d="M 238 266 C 248 240, 264 228, 274 236 C 282 244, 276 264, 264 264 C 252 264, 252 242, 268 234 L 274 262 C 282 242, 292 230, 302 234 C 310 240, 308 258, 298 262 C 308 244, 318 232, 324 234 L 320 300 C 318 326, 296 328, 292 310 C 288 290, 316 266, 332 258 C 342 242, 350 236, 356 244 L 352 262 C 362 244, 372 236, 380 242 L 376 260 C 386 242, 404 232, 414 234 C 424 236, 422 254, 428 258 C 438 238, 452 232, 456 244 C 458 252, 450 260, 442 260 C 434 260, 436 248, 446 240 C 458 232, 474 232, 480 242 C 484 250, 480 260, 474 260 C 468 260, 472 248, 482 236 L 494 150 L 508 264 C 520 238, 542 228, 552 236 C 560 244, 556 258, 550 260"
+    stroke="currentColor"
+    stroke-width="2.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="sig-path-script"
+  />
+  <!-- 5. Underline Stroke with Sweeping Acceleration -->
+  <path
+    d="M 180 286 L 708 266"
+    stroke="#D2FD52"
+    stroke-width="3.0"
+    stroke-linecap="round"
+    class="sig-path-underline"
+  />
+  <!-- 6. Punctuation Terminal Dot -->
+  <circle
+    cx="735"
+    cy="252"
+    r="4"
+    fill="currentColor"
+    class="sig-dot"
+  />
+</svg>

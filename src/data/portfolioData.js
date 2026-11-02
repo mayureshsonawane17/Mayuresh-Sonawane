@@ -31,14 +31,17 @@ export const personalInfo = {
   portrait: {
     // Authenticated personal photographs of Mayuresh Sonawane
     src: "/assets/personal/portrait-front.jpg",
-    profileSrc: "/assets/personal/portrait-profile.jpg",
+    profileSrc: "/assets/hero/about-profile.webp",
     alt: "Mayuresh Sonawane - Creative Developer & Builder",
     isPlaceholder: false,
     caption: "AUTHENTIC EDITORIAL PORTRAIT // MAYURESH SONAWANE",
   },
   signature: {
-    caption: "ORIGINAL SCRIPT ARTWORK // PENDING PERSONAL SIGNATURE SPEC",
-    isPlaceholder: true,
+    caption: "AUTHENTIC HANDWRITTEN SCRIPT // MAYURESH SONAWANE",
+    isPlaceholder: false,
+    assetDark: "/assets/signature/mayuresh-signature-dark.webp",
+    assetLight: "/assets/signature/mayuresh-signature-light.webp",
+    assetVolt: "/assets/signature/mayuresh-signature-volt.webp",
   },
 };
 
@@ -61,8 +64,8 @@ export const maskCollection = {
       material: "Textured Crimson Stretch Fabric & Stitched Webbing",
       lenses: "High-Contrast Hexagonal Micro-Mesh Eye Contours",
       description: "Full cowl portrait wearing the authentic physical red Spider-Man mask, featuring ergonomic head form fitting, comic-accurate eye housings, and crimson contoured web relief.",
-      image: "/assets/personal/mask-wearing.jpg",
-      revealImage: "/assets/personal/mask-lens-detail.jpg",
+      image: "/assets/masks/spiderman-cowl-front.webp",
+      revealImage: "/assets/masks/spiderman-lens-detail.webp",
       tags: ["AUTHENTIC MASK", "CRIMSON WEAVE", "HEROIC WEAR", "HEXAGONAL MESH"],
       isPlaceholder: false,
     },
@@ -73,21 +76,33 @@ export const maskCollection = {
       material: "Curved Ergonomic Shell & Poly-Cotton Elastic Blend",
       lenses: "Gloss Black Sculpted Bezel & White Perforated Optical Diffuser",
       description: "High-resolution lateral study of the physical mask highlighting the cranial curvature, aerodynamic jaw taper, and continuous surface web geometry.",
-      image: "/assets/personal/mask-profile.jpg",
-      revealImage: "/assets/personal/mask-macro.jpg",
+      image: "/assets/masks/spiderman-lateral-profile.webp",
+      revealImage: "/assets/masks/spiderman-profile-macro.webp",
       tags: ["PROFILE CURVATURE", "SCULPTED BEZEL", "LATERAL GEOMETRY", "CRANIAL TAPER"],
       isPlaceholder: false,
     },
     {
       id: "MASK-03",
-      name: "OPTICAL LENS // MACRO WEAVE",
-      specEdition: "MACRO SPECIFICATION // PERSPECTIVE 03",
-      material: "Tactile Raised Web Print & Breathable Technical Knit",
-      lenses: "Dual-Stage Optical Eye Mesh with Peripheral Occlusion",
-      description: "Extreme macro examination showcasing the fine hexagonal honeycomb eye mesh, micro-porous ventilation, and tactile printed web relief.",
-      image: "/assets/personal/mask-lens-detail.jpg",
-      revealImage: "/assets/personal/mask-wearing.jpg",
-      tags: ["HONEYCOMB MESH", "RAISED WEBBING", "OPTICAL DETAIL", "TACTILE KNIT"],
+      name: "OUTDOOR VANGUARD // THE LONE EXPLORER",
+      specEdition: "CINEMATIC EXPEDITION // PERSPECTIVE 03",
+      material: "Weathered Field Ensemble & Crimson Cowl Weave",
+      lenses: "Wide-Angle High-Contrast Micro-Mesh",
+      description: "Mayuresh photographed on an open green valley expedition wearing the authentic Spider-Man cowl under dramatic overcast skies, capturing the raw intersection of imagination, code, and landscape.",
+      image: "/assets/masks/spiderman-outdoor-field.webp",
+      revealImage: "/assets/masks/spiderman-cowl-front.webp",
+      tags: ["OPEN HORIZON", "OUTDOOR VANGUARD", "CINEMATIC SCOPE", "AUTHENTIC COWL"],
+      isPlaceholder: false,
+    },
+    {
+      id: "MASK-04",
+      name: "HALLOWEEN PUMPKIN // TACTILE ARTIFACT",
+      specEdition: "SEASONAL STUDY // PERSPECTIVE 04",
+      material: "Molded Thermoplastic & Matte Black Occlusions",
+      lenses: "Sculpted Geometric Triangular Cutouts",
+      description: "Physical sculpted jack-o'-lantern artifact featuring carved expressive triangular eyes and high-contrast grinning contour.",
+      image: "/assets/masks/mask-pumpkin-halloween.webp",
+      revealImage: "/assets/masks/spiderman-cowl-front.webp",
+      tags: ["SEASONAL ARTIFACT", "TACTILE SCULPT", "GEOMETRIC RELIEF"],
       isPlaceholder: false,
     },
   ],
@@ -133,58 +148,59 @@ export const socialLinks = {
 
 /**
  * Journey Documentary Milestones
- * Authentic milestones with no invented dates, awards, or honors.
+ * Authentic milestones featuring Mayuresh Sonawane's genuine milestone photography.
+ * NO PHYSICAL LOCATION OR GPS COORDINATES DISPLAYED.
  */
 export const journeyMilestones = [
   {
     id: "01",
-    period: "FOUNDATIONAL PHASE",
-    title: "THE FIRST LINE OF CODE",
-    subtitle: "First Principles & Problem Solving",
-    description: "Embarking on the engineering path: mastering computing fundamentals, algorithmic logic, and structural programming paradigms.",
-    tags: ["COMPUTATIONAL LOGIC", "FIRST PRINCIPLES", "ALGORITHMS"],
-    image: "https://images.unsplash.com/photo-1516116211227-bbc66e60b29c?q=80&w=800&auto=format&fit=crop",
+    period: "ORIGINS",
+    title: "EARLY ROOTS & INQUISITIVE MIND",
+    subtitle: "First Principles & Inherent Curiosity",
+    description: "Early childhood foundations rooted in family, sibling bonds, and an innate curiosity about how machines, visual interfaces, and computational systems come together.",
+    tags: ["EARLY ROOTS", "INQUISITIVE MIND", "FIRST PRINCIPLES"],
+    image: "/assets/journey/journey-01-roots.webp",
     isPlaceholder: false,
   },
   {
     id: "02",
-    period: "WEB & INTERFACE EXPLORATION",
-    title: "BUILDING DIGITAL PRODUCTS",
-    subtitle: "Front-End Systems & Interaction",
-    description: "Developing practical web applications, mastering responsive layouts, state architecture, and tactile micro-interactions.",
-    tags: ["WEB PLATFORMS", "INTERACTION DESIGN", "UI/UX ARCHITECTURE"],
-    image: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=800&auto=format&fit=crop",
+    period: "FOUNDATIONS",
+    title: "FAMILY VALUES & CORE RESILIENCE",
+    subtitle: "Empathy, Support & Quiet Determination",
+    description: "Growing up supported by family, internalizing values of persistence, humility, and the quiet drive to build meaningful things that refuse to be unremarkable.",
+    tags: ["CORE VALUES", "SUPPORT SYSTEM", "EMPATHY"],
+    image: "/assets/journey/journey-02-foundations.webp",
     isPlaceholder: false,
   },
   {
     id: "03",
-    period: "GAME ARCHITECTURE",
-    title: "ORIGIN: 2D ACTION-ADVENTURE",
-    subtitle: "Game Systems & Narrative Mechanics",
-    description: "Architecting game systems in Godot Engine: reset managers, boss state machines, combat mechanics, and loop-breaking narrative design.",
-    tags: ["GODOT ENGINE 4.7", "GAMEPLAY ENGINEERING", "STATE SYSTEMS"],
-    image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop",
+    period: "COLLEGE ERA",
+    title: "CREATIVE SPIRIT & SOCIAL HORIZONS",
+    subtitle: "Collaborative Energy & Expression",
+    description: "Navigating engineering college, collaborating with peers, exploring culture, and discovering a passion for digital craftsmanship and frontend interaction.",
+    tags: ["ENGINEERING", "CAMPUS EXPLORATION", "CREATIVE SPARK"],
+    image: "/assets/journey/journey-03-college.webp",
     isPlaceholder: false,
   },
   {
     id: "04",
-    period: "COMMUNITY & OPEN SOURCE",
-    title: "GOOD FIRST ISSUE FINDER",
-    subtitle: "Developer Tooling for the Ecosystem",
-    description: "Contributing to developer tooling: streamlining open-source discovery on GitHub and lowering entry barriers for new contributors.",
-    tags: ["OPEN SOURCE", "DEVELOPER PRODUCTIVITY", "GITHUB ECOSYSTEM"],
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
+    period: "EXPEDITION",
+    title: "URBAN HORIZONS & PERSONAL DIRECTION",
+    subtitle: "Aesthetics, Street Style & Ambition",
+    description: "Stepping onto rooftops and looking out at the city skyline with focused intent—channeling personal style, design aesthetics, and technical ambition into a distinct creative identity.",
+    tags: ["URBAN VISTA", "PERSONAL IDENTITY", "AESTHETICS"],
+    image: "/assets/journey/journey-04-horizons.webp",
     isPlaceholder: false,
   },
   {
     id: "05",
-    period: "[EDITABLE // UPCOMING MILESTONES]",
-    title: "[HACKATHON / RECOGNITION PLACEHOLDER]",
-    subtitle: "Competitions & Verified Honors",
-    description: "Space reserved for verified hackathon wins, official recognitions, academic milestones, and production game launches as confirmed by Mayuresh.",
-    tags: ["VERIFIED HONORS", "HACKATHONS", "MILESTONES"],
-    image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
-    isPlaceholder: true,
+    period: "PRESENT // 2026",
+    title: "THE LONE EXPLORER & UNCONVENTIONAL PATH",
+    subtitle: "Bridging Imagination & Engineering",
+    description: "Venturing into open landscapes and new mediums: action-adventure games in Godot, kinetic 3D web platforms, physical masks, and authentic cinematic digital storytelling.",
+    tags: ["LONE EXPLORER", "CREATIVE DEVELOPER", "FUTURE HORIZON"],
+    image: "/assets/journey/journey-05-creative.webp",
+    isPlaceholder: false,
   },
 ];
 
@@ -210,6 +226,58 @@ export const credentialsData = {
   certifications: [], // Empty until supplied
   experience: [], // Empty until supplied
 };
+
+/**
+ * Curated Project Presets / Templates
+ * Authentic project configurations featuring Mayuresh's reference photographs and real projects.
+ * Available in Admin Dashboard for one-click publishing when ready.
+ */
+export const curatedProjectTemplates = [
+  {
+    id: "PROJ-01",
+    title: "ORIGIN: 2D ACTION-ADVENTURE",
+    category: "Game Architecture & State Systems",
+    primaryImage: "/assets/projects/project-origin-cover.webp",
+    description: "An atmospheric 2D action-adventure crafted in Godot Engine 4.7 exploring loop-breaking mechanics, boss state machines, and precision combat flow.",
+    tags: ["GODOT ENGINE 4.7", "GDScript", "COMBAT LOGIC", "STATE ENGINES"],
+    githubUrl: "https://github.com/mayureshsonawane17/origin-game",
+    liveUrl: "",
+    status: "In-Development",
+  },
+  {
+    id: "PROJ-02",
+    title: "JAI BALAJI YATRA",
+    category: "Travel & Pilgrimage Web Platform",
+    primaryImage: "/assets/projects/project-jai-balaji-cover.webp",
+    description: "A full-stack pilgrimage booking and spiritual itinerary system designed to assist families in planning, lodging, and navigating sacred routes across India.",
+    tags: ["REACT", "TAILWIND CSS", "NODE.JS", "EXPEDITION LOGISTICS"],
+    githubUrl: "https://github.com/mayureshsonawane17/jai-balaji-yatra",
+    liveUrl: "https://jaibalajiyatra.com",
+    status: "Completed",
+  },
+  {
+    id: "PROJ-03",
+    title: "KICKS: KINETIC STREETWEAR",
+    category: "Interactive 3D E-Commerce Experience",
+    primaryImage: "/assets/projects/project-kicks-cover.webp",
+    description: "An experimental high-velocity streetwear lookbook featuring kinetic typography, 3D product previews, and sub-millisecond interaction pacing.",
+    tags: ["THREE.JS", "WEBGL", "REACT", "GSAP MOTION"],
+    githubUrl: "https://github.com/mayureshsonawane17/kicks-kinetic",
+    liveUrl: "",
+    status: "Concept",
+  },
+  {
+    id: "PROJ-04",
+    title: "GOOD FIRST ISSUE FINDER",
+    category: "Developer Tooling & Ecosystem Utility",
+    primaryImage: "/assets/projects/project-devtools-cover.webp",
+    description: "An automated GitHub explorer that aggregates and filters accessible open-source issues for aspiring developers, lowering the onboarding barrier to OSS.",
+    tags: ["TYPESCRIPT", "GITHUB REST API", "OPEN SOURCE", "DEV TOOLING"],
+    githubUrl: "https://github.com/mayureshsonawane17/good-first-issue-finder",
+    liveUrl: "",
+    status: "Completed",
+  },
+];
 
 /**
  * INITIAL PUBLIC PROJECTS: EMPTY BY SPECIFICATION

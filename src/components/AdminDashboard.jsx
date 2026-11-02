@@ -4,6 +4,7 @@ import {
   Eye, EyeOff, Sparkles, AlertCircle, RefreshCw, Layers, FolderKanban, LogOut,
   ExternalLink, FileCode, CheckCircle2, ShieldAlert
 } from 'lucide-react';
+import { curatedProjectTemplates } from '../data/portfolioData';
 
 export default function AdminDashboard({ isOpen, onClose, onProjectsUpdated }) {
   const [token, setToken] = useState(() => localStorage.getItem('ms_admin_token') || '');
@@ -452,6 +453,29 @@ export default function AdminDashboard({ isOpen, onClose, onProjectsUpdated }) {
     });
   };
 
+  const handleLoadCuratedTemplate = (template) => {
+    setFormData({
+      title: template.title,
+      subtitle: template.category,
+      category: template.category,
+      description: template.description,
+      longDescription: template.description,
+      status: 'PUBLISHED',
+      tags: template.tags ? template.tags.join(', ') : '',
+      liveUrl: template.liveUrl || '',
+      githubUrl: template.githubUrl || '',
+      primaryImage: template.primaryImage || '',
+      revealImage: template.primaryImage || '',
+      featured: true,
+    });
+    setEditingProject(null);
+    setActiveTab('create');
+    setFormMessage({
+      type: 'success',
+      text: `Loaded preset: "${template.title}". Review or adjust before clicking SAVE & PUBLISH.`,
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -642,13 +666,32 @@ export default function AdminDashboard({ isOpen, onClose, onProjectsUpdated }) {
                     <div className="p-12 text-center rounded-xl border border-dashed border-charcoal-border text-charcoal-muted">
                       <FolderKanban className="w-10 h-10 mx-auto mb-3 opacity-40 text-volt" />
                       <p className="font-display font-bold text-lg text-white uppercase">NO PROJECTS CREATED YET</p>
-                      <p className="font-mono text-xs mt-1">Use "ADD PROJECT" or "GITHUB IMPORT" to create your first portfolio entry.</p>
+                      <p className="font-mono text-xs mt-1">Use "ADD PROJECT", "GITHUB IMPORT", or choose a curated reference template below.</p>
                       <button
                         onClick={() => setActiveTab('create')}
                         className="mt-4 px-4 py-2 bg-volt text-charcoal font-mono text-xs font-bold rounded uppercase"
                       >
                         CREATE NEW PROJECT
                       </button>
+
+                      <div className="mt-8 pt-6 border-t border-charcoal-border/60 max-w-lg mx-auto">
+                        <span className="font-mono text-[10px] text-volt uppercase tracking-widest block mb-3 font-semibold flex items-center justify-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          QUICK LOAD CURATED REFERENCE TEMPLATES
+                        </span>
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          {curatedProjectTemplates.map(tmpl => (
+                            <button
+                              key={tmpl.id}
+                              onClick={() => handleLoadCuratedTemplate(tmpl)}
+                              className="px-3 py-1.5 rounded bg-charcoal border border-charcoal-border hover:border-volt text-white font-mono text-[11px] hover:text-volt transition-all flex items-center gap-1.5"
+                            >
+                              <Plus className="w-3 h-3 text-volt" />
+                              <span>{tmpl.title}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -756,6 +799,27 @@ export default function AdminDashboard({ isOpen, onClose, onProjectsUpdated }) {
                         CANCEL EDIT
                       </button>
                     )}
+                  </div>
+
+                  {/* Curated Reference Presets Bar */}
+                  <div className="mb-6 p-4 rounded-xl bg-charcoal border border-charcoal-border">
+                    <span className="font-mono text-[10px] text-volt uppercase tracking-widest block mb-2.5 font-semibold flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      QUICK LOAD CURATED REFERENCE TEMPLATES
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {curatedProjectTemplates.map(tmpl => (
+                        <button
+                          key={tmpl.id}
+                          type="button"
+                          onClick={() => handleLoadCuratedTemplate(tmpl)}
+                          className="px-3 py-1.5 rounded bg-charcoal-surface border border-charcoal-border hover:border-volt text-white font-mono text-[11px] hover:text-volt transition-all flex items-center gap-1.5"
+                        >
+                          <Plus className="w-3 h-3 text-volt" />
+                          <span>{tmpl.title}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {formMessage.text && (
