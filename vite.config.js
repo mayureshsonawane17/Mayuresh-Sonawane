@@ -22,10 +22,10 @@ export default defineConfig({
         server.middlewares.use((req, res, next) => {
           const url = req.url || '';
           if (
-            url.startsWith('/data/') || 
-            url.includes('/data/') ||
+            (url.startsWith('/data/') && !url.startsWith('/src/')) || 
+            (url.includes('/data/') && !url.includes('/src/data/')) ||
             url.startsWith('/server/') ||
-            url.includes('/server/') ||
+            (url.includes('/server/') && !url.includes('/src/')) ||
             url.includes('auth-db.json') ||
             url.includes('projects-db.json')
           ) {
@@ -46,10 +46,10 @@ export default defineConfig({
         server.middlewares.use((req, res, next) => {
           const url = req.url || '';
           if (
-            url.startsWith('/data/') || 
-            url.includes('/data/') ||
+            (url.startsWith('/data/') && !url.startsWith('/src/')) || 
+            (url.includes('/data/') && !url.includes('/src/data/')) ||
             url.startsWith('/server/') ||
-            url.includes('/server/') ||
+            (url.includes('/server/') && !url.includes('/src/')) ||
             url.includes('auth-db.json') ||
             url.includes('projects-db.json')
           ) {
