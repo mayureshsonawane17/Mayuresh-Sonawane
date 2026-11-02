@@ -23,11 +23,11 @@ export default function Navigation({ onTriggerTransition, onOpenAdmin }) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-paper/90 backdrop-blur-md border-b border-paper-border transition-colors duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-paper/90 backdrop-blur-md transition-colors duration-300">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between">
         
         {/* Brand & Monogram */}
-        <div className="flex items-center gap-4">
+        <div className="nav-item flex items-center gap-4">
           <a 
             href="#hero" 
             className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-volt"
@@ -56,7 +56,7 @@ export default function Navigation({ onTriggerTransition, onOpenAdmin }) {
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden xl:flex items-center gap-6 font-mono text-xs tracking-wider" aria-label="Main Navigation">
+        <nav className="nav-item hidden xl:flex items-center gap-6 font-mono text-xs tracking-wider" aria-label="Main Navigation">
           {navLinks.map((link) => (
             <a
               key={link.label}
@@ -70,7 +70,7 @@ export default function Navigation({ onTriggerTransition, onOpenAdmin }) {
         </nav>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="nav-item flex items-center gap-2.5 sm:gap-3">
           {/* Admin Dashboard Pill */}
           {onOpenAdmin && (
             <button
@@ -112,6 +112,9 @@ export default function Navigation({ onTriggerTransition, onOpenAdmin }) {
           </button>
         </div>
       </div>
+
+      {/* Animated thin hairline border */}
+      <div className="nav-hairline absolute bottom-0 left-0 right-0 h-[1px] bg-paper-border origin-left" />
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (

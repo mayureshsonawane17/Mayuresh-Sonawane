@@ -3,100 +3,91 @@ import * as THREE from 'three';
 
 /**
  * HeroShaderCanvas
- * WebGL GLSL Shader adapted directly from OFF+BRAND's implementation for landonorris.com.
- * Features:
- * - Fluid sinusoidal wave roll transition between Mayuresh Unmasked and Spider-Man Mask
- *   Formula: float hoverTransition = uv.y + sin(uv.x * PI) * sin(uMaskHover * PI) * 0.22;
- * - Interactive cursor ripple displacement & chromatic dispersion (RGB channel separation)
- * - Laser seam edge glow in electric volt (#D2FD52)
- * - Aspect-ratio correct plane mapping preserving 900x1152 portrait resolution
+ * Optional enhancement pass for the Cinematic Hero.
+ * - Sinusoidal wave ripple at the seam edge
+ * - Subtle depth displacement (zero on face via face-protect mask)
+ * - Restrained chromatic aberration (<= 1.5px) along seam and hair silhouette only
+ * - Electric volt seam laser glow (#D2FD52)
+ * - Low-power heuristic & graceful fallback: renders pure DOM layers if disabled.
  */
 export default function HeroShaderCanvas({
-  unmaskedSrc = '/assets/personal/hero-unmasked.png',
-  maskedSrc = '/assets/personal/hero-masked.png',
-  maskProgress = 0.0, // 0.0 (Unmasked) to 1.0 (Spider-Man Mask)
-  isHovered = false,
+  reveal = 0.0,
+  seamAngle = -12.0, // degrees
   mousePos = { x: 0.5, y: 0.5 },
-  onClick,
+  isHovered = false,
+  enabled = true,
 }) {
   const mountRef = useRef(null);
   const uniformsRef = useRef(null);
   const rendererRef = useRef(null);
+  const targetRevealRef = useRef(reveal);
   const targetMouseRef = useRef(new THREE.Vector2(0.5, 0.5));
   const currentMouseRef = useRef(new THREE.Vector2(0.5, 0.5));
-  const targetMaskRef = useRef(maskProgress);
 
-  // Update target coordinates
+  useEffect(() => {
+    targetRevealRef.current = Math.max(0.0, Math.min(1.0, reveal));
+  }, [reveal]);
+
   useEffect(() => {
     targetMouseRef.current.set(mousePos.x, 1.0 - mousePos.y);
   }, [mousePos]);
 
   useEffect(() => {
-    targetMaskRef.current = Math.max(0.0, Math.min(1.0, maskProgress));
-  }, [maskProgress]);
+    // Low-power check
+    const isLowPower =
+      typeof navigator !== 'undefined' &&
+      ((navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+        (navigator.deviceMemory && navigator.deviceMemory <= 4));
 
-  useEffect(() => {
+    if (!enabled || isLowPower) {
+      if (isLowPower) {
+        console.warn('HeroShaderCanvas: low-power device detected, WebGL enhancement bypassed in favor of pure DOM layers.');
+      }
+      return;
+    }
+
     const container = mountRef.current;
     if (!container) return;
 
     const width = container.clientWidth || 600;
     const height = container.clientHeight || 800;
 
-    // Scene & Orthographic Camera
+    // Three.js Scene Setup
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-    // Renderer
     let renderer;
     try {
       renderer = new THREE.WebGLRenderer({
         alpha: true,
-        antialias: true,
+        antialias: false,
         powerPreference: 'high-performance',
       });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
       renderer.setClearColor(0x000000, 0);
       rendererRef.current = renderer;
       container.appendChild(renderer.domElement);
     } catch (e) {
-      console.warn('WebGL initialization skipped:', e);
+      console.warn('HeroShaderCanvas WebGL fallback active: pure DOM/CSS rendering used.', e);
       return;
     }
 
-    // Default 1x1 transparent texture
-    const transparentData = new Uint8Array([0, 0, 0, 0]);
-    const fallbackTexture = new THREE.DataTexture(transparentData, 1, 1, THREE.RGBAFormat);
-    fallbackTexture.needsUpdate = true;
-
-    // Load textures
+    // Textures
     const textureLoader = new THREE.TextureLoader();
-    let unmaskedTexture = fallbackTexture;
-    let maskedTexture = fallbackTexture;
+    const unmaskedTex = textureLoader.load('/assets/hero/hero-front.webp');
+    const maskedTex = textureLoader.load('/assets/hero/hero-mask.webp');
+    const depthTex = textureLoader.load('/assets/hero/hero-depth.webp');
+    const faceProtectTex = textureLoader.load('/assets/hero/hero-face-protect.webp');
 
-    textureLoader.load(unmaskedSrc, (tex) => {
-      tex.minFilter = THREE.LinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-      tex.generateMipmaps = false;
-      unmaskedTexture = tex;
-      if (uniformsRef.current) {
-        uniformsRef.current.uTextureUnmasked.value = tex;
-        uniformsRef.current.uLoadedUnmasked.value = 1.0;
-      }
+    [unmaskedTex, maskedTex, depthTex, faceProtectTex].forEach((t) => {
+      t.minFilter = THREE.LinearFilter;
+      t.magFilter = THREE.LinearFilter;
+      t.generateMipmaps = false;
     });
 
-    textureLoader.load(maskedSrc, (tex) => {
-      tex.minFilter = THREE.LinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-      tex.generateMipmaps = false;
-      maskedTexture = tex;
-      if (uniformsRef.current) {
-        uniformsRef.current.uTextureMasked.value = tex;
-        uniformsRef.current.uLoadedMasked.value = 1.0;
-      }
-    });
+    const angleRad = (seamAngle * Math.PI) / 180.0;
 
-    // GLSL Shaders
     const vertexShader = `
       varying vec2 vUv;
       void main() {
@@ -108,13 +99,14 @@ export default function HeroShaderCanvas({
     const fragmentShader = `
       uniform sampler2D uTextureUnmasked;
       uniform sampler2D uTextureMasked;
-      uniform float uLoadedUnmasked;
-      uniform float uLoadedMasked;
+      uniform sampler2D uTextureDepth;
+      uniform sampler2D uTextureFaceProtect;
+      uniform float uReveal;
+      uniform float uAngle;
       uniform vec2 uMouse;
       uniform vec2 uResolution;
       uniform float uTime;
       uniform float uHover;
-      uniform float uMaskHover;
       varying vec2 vUv;
 
       const float PI = 3.14159265358979323846;
@@ -122,90 +114,71 @@ export default function HeroShaderCanvas({
       void main() {
         vec2 uv = vUv;
 
-        // Container aspect-ratio fit (contain mode: 900x1152 aspect)
-        float textureAspect = 900.0 / 1152.0;
+        // Container aspect-ratio fit (730x566 aspect)
+        float textureAspect = 730.0 / 566.0;
         float containerAspect = uResolution.x / uResolution.y;
         
         vec2 renderUv = uv;
         if (containerAspect > textureAspect) {
-          // Wider than image: pillarbox
           float scale = textureAspect / containerAspect;
           renderUv.x = (uv.x - 0.5) / scale + 0.5;
         } else {
-          // Taller than image: align bottom
           float scale = containerAspect / textureAspect;
           renderUv.y = uv.y / scale;
         }
 
-        // Clip pixels outside the texture bounds
         if (renderUv.x < 0.0 || renderUv.x > 1.0 || renderUv.y < 0.0 || renderUv.y > 1.0) {
           discard;
         }
 
-        // Fluid cursor ripple effect
-        vec2 mouseUv = uMouse;
-        float dist = distance(renderUv, mouseUv);
-        float radius = 0.35;
-        float strength = smoothstep(radius, 0.0, dist) * uHover;
-        vec2 dir = renderUv - mouseUv;
-        if (length(dir) > 0.0001) dir = normalize(dir);
+        // Sample face protection mask (1.0 = protect face from displacement & chroma)
+        float faceProtect = texture2D(uTextureFaceProtect, renderUv).r;
 
-        float ripple = sin(dist * 35.0 - uTime * 4.0) * 0.012 * strength;
+        // Diagonal seam projection
+        float cosA = cos(uAngle);
+        float sinA = sin(uAngle);
+        float proj = renderUv.x * cosA + (1.0 - renderUv.y) * sinA;
+        float maxProj = cosA + abs(sinA);
+        float normProj = proj / maxProj;
+        float seamDist = normProj - uReveal;
 
-        // Chromatic dispersion offsets
-        float rOffset = 0.010 * strength + ripple;
-        float gOffset = 0.003 * strength + ripple * 0.5;
-        float bOffset = -0.008 * strength;
+        // Sub-pixel seam ripple
+        float ripple = sin(renderUv.y * 35.0 - uTime * 4.0) * 0.004 * smoothstep(0.08, 0.0, abs(seamDist));
 
-        vec2 rUv = clamp(renderUv + dir * rOffset, 0.0, 1.0);
-        vec2 gUv = clamp(renderUv + dir * gOffset, 0.0, 1.0);
-        vec2 bUv = clamp(renderUv + dir * bOffset, 0.0, 1.0);
+        // Sample depth map for subtle clothing edge displacement (zero on face)
+        float depth = texture2D(uTextureDepth, renderUv).r * (1.0 - faceProtect);
+        vec2 dispOffset = vec2(depth * 0.003, depth * 0.002) * uHover;
 
-        // Sample Unmasked texture
-        vec4 colUnmasked = vec4(0.0);
-        if (uLoadedUnmasked > 0.5) {
-          float ur = texture2D(uTextureUnmasked, rUv).r;
-          float ug = texture2D(uTextureUnmasked, gUv).g;
-          float ub = texture2D(uTextureUnmasked, bUv).b;
-          float ua = texture2D(uTextureUnmasked, renderUv).a;
-          colUnmasked = vec4(ur, ug, ub, ua);
-        }
+        // Chromatic split (strictly <= 1.5px, zero on face)
+        float chromaDist = smoothstep(0.035, 0.0, abs(seamDist)) * (1.0 - faceProtect) * 0.0015;
+        vec2 rUv = clamp(renderUv + dispOffset + vec2(chromaDist, 0.0), 0.0, 1.0);
+        vec2 gUv = clamp(renderUv + dispOffset, 0.0, 1.0);
+        vec2 bUv = clamp(renderUv + dispOffset - vec2(chromaDist, 0.0), 0.0, 1.0);
 
-        // Sample Masked texture
-        vec4 colMasked = vec4(0.0);
-        if (uLoadedMasked > 0.5) {
-          float mr = texture2D(uTextureMasked, rUv).r;
-          float mg = texture2D(uTextureMasked, gUv).g;
-          float mb = texture2D(uTextureMasked, bUv).b;
-          float ma = texture2D(uTextureMasked, renderUv).a;
-          colMasked = vec4(mr, mg, mb, ma);
-        }
+        // Sample Unmasked with chromatic split
+        float ur = texture2D(uTextureUnmasked, rUv).r;
+        float ug = texture2D(uTextureUnmasked, gUv).g;
+        float ub = texture2D(uTextureUnmasked, bUv).b;
+        float ua = texture2D(uTextureUnmasked, renderUv).a;
+        vec4 colUnmasked = vec4(ur, ug, ub, ua);
 
-        /* 
-         * OFF+BRAND's Exact Sinusoidal Wave Transition Formula
-         * from landonorris.com:
-         * float hoverTransition = vUv.y + sin(vUv.x * PI) * sin(uHelmetHover * PI) * 0.2;
-         */
-        float hoverTransition = renderUv.y + sin(renderUv.x * PI) * sin(uMaskHover * PI) * 0.22;
-        
-        // Smoothstep threshold creates the flowing wave cutoff
-        float maskFactor = smoothstep(1.0 - hoverTransition - 0.04, 1.0 - hoverTransition + 0.04, uMaskHover);
+        // Sample Masked with chromatic split
+        float mr = texture2D(uTextureMasked, rUv).r;
+        float mg = texture2D(uTextureMasked, gUv).g;
+        float mb = texture2D(uTextureMasked, bUv).b;
+        float ma = texture2D(uTextureMasked, renderUv).a;
+        vec4 colMasked = vec4(mr, mg, mb, ma);
 
-        // Electric Volt Lime (#D2FD52) wave seam highlight
-        float seamDist = abs(hoverTransition - (1.0 - uMaskHover));
-        float waveLaser = smoothstep(0.035, 0.0, seamDist) * sin(uMaskHover * PI) * 1.2;
+        // Seam transition cutoff
+        float factor = smoothstep(-0.008, 0.008, seamDist + ripple);
+        vec4 finalCol = mix(colMasked, colUnmasked, factor);
+
+        // Electric volt seam laser glow (#D2FD52)
+        float laser = smoothstep(0.015, 0.0, abs(seamDist)) * smoothstep(0.01, 0.04, uReveal) * smoothstep(0.99, 0.96, uReveal);
         vec3 voltLime = vec3(0.824, 0.992, 0.322);
 
-        // Blend unmasked and masked subject
-        vec4 finalCol = mix(colUnmasked, colMasked, maskFactor);
-
-        // Apply laser wave crest illumination
         if (finalCol.a > 0.05) {
-          finalCol.rgb = mix(finalCol.rgb, voltLime, waveLaser * 0.85);
-          
-          // Subtle cursor proximity highlight
-          float cursorGlow = pow(strength, 2.5) * 0.25;
-          finalCol.rgb = mix(finalCol.rgb, voltLime, cursorGlow);
+          finalCol.rgb = mix(finalCol.rgb, voltLime, laser * 0.85);
         }
 
         gl_FragColor = finalCol;
@@ -213,15 +186,16 @@ export default function HeroShaderCanvas({
     `;
 
     const uniforms = {
-      uTextureUnmasked: { value: unmaskedTexture },
-      uTextureMasked: { value: maskedTexture },
-      uLoadedUnmasked: { value: 0.0 },
-      uLoadedMasked: { value: 0.0 },
+      uTextureUnmasked: { value: unmaskedTex },
+      uTextureMasked: { value: maskedTex },
+      uTextureDepth: { value: depthTex },
+      uTextureFaceProtect: { value: faceProtectTex },
+      uReveal: { value: reveal },
+      uAngle: { value: angleRad },
       uMouse: { value: new THREE.Vector2(0.5, 0.5) },
       uResolution: { value: new THREE.Vector2(width, height) },
       uTime: { value: 0.0 },
       uHover: { value: 0.0 },
-      uMaskHover: { value: maskProgress },
     };
     uniformsRef.current = uniforms;
 
@@ -240,26 +214,40 @@ export default function HeroShaderCanvas({
     let animationId;
     const clock = new THREE.Clock();
 
+    // IntersectionObserver to pause rendering when offscreen
+    let isVisible = true;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isVisible = entry.isIntersecting;
+        });
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+
     const animate = () => {
       animationId = requestAnimationFrame(animate);
+      if (!isVisible || document.hidden) return;
+
       const elapsedTime = clock.getElapsedTime();
 
       if (uniformsRef.current) {
         uniformsRef.current.uTime.value = elapsedTime;
 
-        // Smooth cursor interpolation
+        // Smooth mouse
         currentMouseRef.current.lerp(targetMouseRef.current, 0.08);
         uniformsRef.current.uMouse.value.copy(currentMouseRef.current);
 
-        // Smooth mask progress interpolation
-        const currentMask = uniformsRef.current.uMaskHover.value;
-        uniformsRef.current.uMaskHover.value = THREE.MathUtils.lerp(
-          currentMask,
-          targetMaskRef.current,
-          0.09
+        // Smooth reveal
+        const curReveal = uniformsRef.current.uReveal.value;
+        uniformsRef.current.uReveal.value = THREE.MathUtils.lerp(
+          curReveal,
+          targetRevealRef.current,
+          0.12
         );
 
-        // Smooth hover transition
+        // Hover
         const targetHover = isHovered ? 1.0 : 0.0;
         uniformsRef.current.uHover.value = THREE.MathUtils.lerp(
           uniformsRef.current.uHover.value,
@@ -287,25 +275,26 @@ export default function HeroShaderCanvas({
 
     return () => {
       cancelAnimationFrame(animationId);
+      observer.disconnect();
       window.removeEventListener('resize', handleResize);
       geometry.dispose();
       material.dispose();
-      if (unmaskedTexture && unmaskedTexture !== fallbackTexture) unmaskedTexture.dispose();
-      if (maskedTexture && maskedTexture !== fallbackTexture) maskedTexture.dispose();
-      fallbackTexture.dispose();
+      unmaskedTex.dispose();
+      maskedTex.dispose();
+      depthTex.dispose();
+      faceProtectTex.dispose();
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, [unmaskedSrc, maskedSrc]);
+  }, [enabled, seamAngle]);
 
   return (
     <div
       ref={mountRef}
-      onClick={onClick}
-      className="absolute inset-0 w-full h-full cursor-pointer select-none"
-      aria-label="Interactive Spider-Man Mask WebGL Canvas"
+      className="absolute inset-0 w-full h-full pointer-events-none select-none z-10"
+      aria-hidden="true"
     />
   );
 }

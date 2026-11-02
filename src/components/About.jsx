@@ -143,12 +143,15 @@ export default function About() {
 
               {/* Portrait Aspect Frame */}
               <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-charcoal">
-                <img 
-                  src={personalInfo.portrait.profileSrc || personalInfo.portrait.src} 
-                  alt={personalInfo.portrait.alt}
-                  className="w-full h-full object-cover object-center filter grayscale contrast-125 transition-transform duration-700 group-hover:scale-105"
-                  loading="lazy"
-                />
+                <picture className="w-full h-full block">
+                  <source srcSet="/assets/hero/about-profile.webp" type="image/webp" />
+                  <img 
+                    src="/assets/hero/about-profile.webp" 
+                    alt="Mayuresh Sonawane - Creative Developer & Builder"
+                    className="about-profile-img w-full h-full object-cover object-center filter grayscale contrast-125 transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                </picture>
 
                 {/* Editorial Overlay Vignette */}
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-transparent to-transparent opacity-60"></div>

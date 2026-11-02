@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import Lenis from 'lenis';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 import Navigation from './components/Navigation';
 import TransitionPanel from './components/TransitionPanel';
@@ -36,7 +40,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Initialize smooth scrolling with Lenis (respects reduced motion)
+  // Initialize smooth scrolling with Lenis & wire to GSAP ScrollTrigger
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
@@ -49,15 +53,17 @@ export default function App() {
       touchMultiplier: 1.5,
     });
 
-    function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
+    lenis.on('scroll', ScrollTrigger.update);
 
-    const animationFrameId = requestAnimationFrame(raf);
+    const tickerCb = (time) => {
+      lenis.raf(time * 1000);
+    };
+
+    gsap.ticker.add(tickerCb);
+    gsap.ticker.lagSmoothing(0);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      gsap.ticker.remove(tickerCb);
       lenis.destroy();
     };
   }, []);
