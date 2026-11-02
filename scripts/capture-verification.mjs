@@ -208,3 +208,4 @@ run().catch((err) => {
   console.error('Capture script error:', err);
   process.exit(1);
 });
+

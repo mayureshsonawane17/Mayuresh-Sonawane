@@ -114,8 +114,8 @@ export default function HeroShaderCanvas({
       void main() {
         vec2 uv = vUv;
 
-        // Container aspect-ratio fit (730x566 aspect)
-        float textureAspect = 730.0 / 566.0;
+        // Container aspect-ratio fit (600x561 aspect)
+        float textureAspect = 600.0 / 561.0;
         float containerAspect = uResolution.x / uResolution.y;
         
         vec2 renderUv = uv;
@@ -131,6 +131,12 @@ export default function HeroShaderCanvas({
           discard;
         }
 
+        // At rest (uReveal < 0.02), render pure unmasked photo without any displacement or chromatic split
+        if (uReveal < 0.02) {
+          gl_FragColor = texture2D(uTextureUnmasked, renderUv);
+          return;
+        }
+
         // Sample face protection mask (1.0 = protect face from displacement & chroma)
         float faceProtect = texture2D(uTextureFaceProtect, renderUv).r;
 
@@ -142,15 +148,15 @@ export default function HeroShaderCanvas({
         float normProj = proj / maxProj;
         float seamDist = normProj - uReveal;
 
-        // Sub-pixel seam ripple
-        float ripple = sin(renderUv.y * 35.0 - uTime * 4.0) * 0.004 * smoothstep(0.08, 0.0, abs(seamDist));
+        // Sub-pixel seam ripple (restrained to seam neighborhood outside face)
+        float ripple = sin(renderUv.y * 35.0 - uTime * 4.0) * 0.003 * smoothstep(0.06, 0.0, abs(seamDist)) * (1.0 - faceProtect);
 
         // Sample depth map for subtle clothing edge displacement (zero on face)
         float depth = texture2D(uTextureDepth, renderUv).r * (1.0 - faceProtect);
-        vec2 dispOffset = vec2(depth * 0.003, depth * 0.002) * uHover;
+        vec2 dispOffset = vec2(depth * 0.002, depth * 0.001) * uHover;
 
         // Chromatic split (strictly <= 1.5px, zero on face)
-        float chromaDist = smoothstep(0.035, 0.0, abs(seamDist)) * (1.0 - faceProtect) * 0.0015;
+        float chromaDist = smoothstep(0.03, 0.0, abs(seamDist)) * (1.0 - faceProtect) * 0.0012;
         vec2 rUv = clamp(renderUv + dispOffset + vec2(chromaDist, 0.0), 0.0, 1.0);
         vec2 gUv = clamp(renderUv + dispOffset, 0.0, 1.0);
         vec2 bUv = clamp(renderUv + dispOffset - vec2(chromaDist, 0.0), 0.0, 1.0);
@@ -169,17 +175,9 @@ export default function HeroShaderCanvas({
         float ma = texture2D(uTextureMasked, renderUv).a;
         vec4 colMasked = vec4(mr, mg, mb, ma);
 
-        // Seam transition cutoff
-        float factor = smoothstep(-0.008, 0.008, seamDist + ripple);
+        // Seam transition cutoff (clean mix, NO color tinting on portrait pixels)
+        float factor = smoothstep(-0.006, 0.006, seamDist + ripple);
         vec4 finalCol = mix(colMasked, colUnmasked, factor);
-
-        // Electric volt seam laser glow (#D2FD52)
-        float laser = smoothstep(0.015, 0.0, abs(seamDist)) * smoothstep(0.01, 0.04, uReveal) * smoothstep(0.99, 0.96, uReveal);
-        vec3 voltLime = vec3(0.824, 0.992, 0.322);
-
-        if (finalCol.a > 0.05) {
-          finalCol.rgb = mix(finalCol.rgb, voltLime, laser * 0.85);
-        }
 
         gl_FragColor = finalCol;
       }

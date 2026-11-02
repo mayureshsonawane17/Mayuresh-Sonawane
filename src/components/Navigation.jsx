@@ -47,22 +47,23 @@ export default function Navigation({ onTriggerTransition, onOpenAdmin }) {
           </a>
 
           {/* Telemetry Availability Beacon (No Location) */}
-          <div className="hidden md:flex items-center gap-2.5 px-3 py-1 rounded-full bg-paper-tint border border-paper-border text-paper-ink">
-            <span className="w-2 h-2 rounded-full bg-volt border border-volt-deep animate-volt-pulse"></span>
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full bg-paper-tint border border-paper-border text-paper-ink whitespace-nowrap shrink-0">
+            <span className="w-2 h-2 rounded-full bg-volt border border-volt-deep animate-volt-pulse shrink-0"></span>
             <span className="font-mono text-[10px] tracking-wider uppercase font-medium">
-              {personalInfo.statusBadge}
+              <span className="hidden 2xl:inline">{personalInfo.statusBadge}</span>
+              <span className="inline 2xl:hidden">AVAILABLE 2026</span>
             </span>
           </div>
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav className="nav-item hidden xl:flex items-center gap-6 font-mono text-xs tracking-wider" aria-label="Main Navigation">
+        <nav className="nav-item hidden xl:flex items-center gap-4 2xl:gap-6 font-mono text-[11px] 2xl:text-xs tracking-wider whitespace-nowrap shrink-0" aria-label="Main Navigation">
           {navLinks.map((link) => (
             <a
               key={link.label}
               href={link.href}
               onClick={(e) => handleLinkClick(e, link)}
-              className="text-paper-ink/80 hover:text-paper-ink hover:underline decoration-volt decoration-2 underline-offset-8 transition-colors duration-200"
+              className="text-paper-ink/80 hover:text-paper-ink hover:underline decoration-volt decoration-2 underline-offset-8 transition-colors duration-200 whitespace-nowrap shrink-0"
             >
               {link.label}
             </a>
