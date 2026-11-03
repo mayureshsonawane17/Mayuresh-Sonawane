@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Monogram from './Monogram';
 import { ArrowUpRight, Menu, X, Sparkles, Cpu, Shield } from 'lucide-react';
 import { personalInfo, socialLinks } from '../data/portfolioData';
 
 export default function Navigation({ onTriggerTransition, onOpenAdmin }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show sticky global nav when scrolled past hero opening
+      setScrolled(window.scrollY > 120);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navLinks = [
     { label: '[01] MESSAGE', href: '#about', title: 'A MESSAGE FROM ME' },
@@ -23,7 +34,9 @@ export default function Navigation({ onTriggerTransition, onOpenAdmin }) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-paper/90 backdrop-blur-md transition-colors duration-300">
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-paper/95 backdrop-blur-md border-b border-paper-border/60 transition-all duration-300 shadow-xs ${
+      scrolled ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'
+    }`}>
       <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between">
         
         {/* Brand & Monogram */}

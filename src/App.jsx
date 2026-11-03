@@ -106,6 +106,8 @@ export default function App() {
         {/* 00. Hero: Cinematic Portrait-Led Opening */}
         <Hero 
           onExploreClick={() => handleTriggerTransition('PORTRAIT-TO-CARD DOCK')} 
+          onOpenAdmin={() => setAdminOpen(true)}
+          onTriggerTransition={handleTriggerTransition}
         />
 
         {/* Continuous Kinetic Marquee Ribbon (Directly adapted from landonorris.com) */}

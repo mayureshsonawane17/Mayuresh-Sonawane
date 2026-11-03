@@ -1,725 +1,497 @@
-import React, { useRef, useState, useEffect, useCallback, useLayoutEffect } from 'react';
-import { ArrowDown, Sparkles } from 'lucide-react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import HeroShaderCanvas from './HeroShaderCanvas';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { ArrowDown, Cpu, Sparkles } from 'lucide-react';
 import { personalInfo } from '../data/portfolioData';
 
-gsap.registerPlugin(ScrollTrigger);
-
 /**
- * Hero Component — Cinematic Opening Experience
- * Repairs applied:
- * 1. Fitted typography: "MAYURESH" & "SONAWANE" dynamically sized to container width.
- * 2. Strictly zero text touching the face: "SONAWANE" starts below --chin-y.
- * 3. Left copy column rendered once with solid charcoal text, zero duplication.
- * 4. High-fidelity lossless alpha portrait cutout without blotchiness or hard edges.
- * 5. Mask state without green blend modes or muddy filters.
- * 6. Seam hidden at rest (reveal < 0.02) with sub-pixel SVG line registration.
- * 7. Non-wrapping navigation items and responsive layout.
+ * Hero Component — Slime/Liquid Blob Reveal Experience
+ * Ported faithfully from the user's high-craft prototype ("Your_Name_–_Portfolio.html")
+ * 
+ * Features:
+ * - 2D Canvas spring physics with 3 trailing blobs & velocity-based stretch
+ * - Slime bridge beads connecting neighbouring blobs
+ * - Wobble harmonic perturbations with dynamic phase
+ * - Mask reveal clipping Spider-Man mask over Mayuresh's portrait
+ * - Smooth intro sweep trajectory across the face
+ * - Pure 2D canvas context — ultra-performant, zero WebGL context failures
+ * - Exact editorial off-white palette, SVG flow lines, and pill navigation
  */
-export default function Hero({ onExploreClick }) {
+export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition }) {
   const heroRef = useRef(null);
   const stageRef = useRef(null);
-  const daylightRef = useRef(null);
-  const nightRef = useRef(null);
-  const backNameTextDayRef = useRef(null);
-  const frontNameTextDayRef = useRef(null);
-  const backNameTextNightRef = useRef(null);
-  const frontNameTextNightRef = useRef(null);
-  const backNameBoxRef = useRef(null);
-  const frontNameBoxRef = useRef(null);
-  const portraitStageRef = useRef(null);
-  const copyColumnRef = useRef(null);
-  const cursorFollowerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const baseImgRef = useRef(null);
+  const revImgRef = useRef(null);
+  const animFrameIdRef = useRef(null);
 
-  // Interaction State (0.0 = Unmasked, 1.0 = Masked)
-  const [reveal, setReveal] = useState(0.0);
-  const [isOverPortrait, setIsOverPortrait] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const [webglEnabled, setWebglEnabled] = useState(true);
+  // Expose test helper window.__setHeroReveal
+  const setRevealProgrammaticRef = useRef(null);
 
-  // QuickTo references for spring-like smooth cursor tracking
-  const quickRevealRef = useRef(null);
-  const quickParallaxBackRef = useRef(null);
-  const quickParallaxFrontRef = useRef(null);
-  const quickParallaxPortraitXRef = useRef(null);
-  const quickParallaxPortraitYRef = useRef(null);
-  const quickCursorXRef = useRef(null);
-  const quickCursorYRef = useRef(null);
-  const masterTimelineRef = useRef(null);
-  const idleTimerRef = useRef(null);
-  const isIntroCompleteRef = useRef(false);
-
-  // Detect touch capability
   useEffect(() => {
-    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  }, []);
+    const stage = stageRef.current;
+    const cv = canvasRef.current;
+    const hero = heroRef.current;
+    const bi = baseImgRef.current;
+    const ri = revImgRef.current;
 
-  // Update CSS custom property --reveal and --seam-angle
-  const updateSeamCss = useCallback((value) => {
-    const clamped = Math.max(0.0, Math.min(1.0, value));
-    setReveal(clamped);
-    if (heroRef.current) {
-      heroRef.current.style.setProperty('--reveal', clamped.toString());
-      heroRef.current.style.setProperty('--seam-angle', '-12deg');
+    if (!stage || !cv || !hero || !bi || !ri) return;
+
+    const ctx = cv.getContext('2d');
+    if (!ctx) return;
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let S = 600;
+    let D = 1;
+    let T = 0;
+    let dirty = true;
+    let wasAct = false;
+    let lm = 0;
+    let tx = 0.5;
+    let ty = 0.4;
+    let intro = !reduce;
+    let t0 = null;
+    let prev = null;
+    const sh = [];
+
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const SZ = [0.17, 0.12, 0.085];
+    const KS = [46, 25, 14];
+    const TAU = 6.28319;
+
+    // Big blobs on independent springs: front quick, others trailing
+    for (let q = 0; q < SZ.length; q++) {
+      const d = q ? 0.03 + q * 0.02 : 0;
+      sh.push({
+        i: q,
+        x: 0.5,
+        y: 0.4,
+        vx: 0,
+        vy: 0,
+        R: 0,
+        vR: 0,
+        k: KS[q],
+        sz: SZ[q],
+        ox: Math.cos(q * 2.4 + 1) * d,
+        oy: Math.sin(q * 2.4 + 1) * d,
+        ph: q * 1.9,
+        ang: 0,
+        st: 0,
+      });
     }
-  }, []);
 
-  // Expose for testing & accessibility
-  useEffect(() => {
-    window.__setHeroReveal = (val) => {
-      if (masterTimelineRef.current) {
-        masterTimelineRef.current.kill();
+    function fit() {
+      if (!stage) return;
+      S = stage.clientWidth || 600;
+      D = Math.min(window.devicePixelRatio || 1, 2);
+      cv.width = Math.round(S * D);
+      cv.height = Math.round(S * D);
+      dirty = true;
+    }
+
+    fit();
+    let ro = null;
+    if (window.ResizeObserver) {
+      ro = new ResizeObserver(fit);
+      ro.observe(stage);
+    } else {
+      window.addEventListener('resize', fit);
+    }
+
+    bi.onload = () => { dirty = true; };
+    ri.onload = () => { dirty = true; };
+    if (bi.complete && ri.complete) {
+      dirty = true;
+    }
+
+    function active() {
+      for (let i = 0; i < sh.length; i++) {
+        if (sh[i].R > 0.003) return true;
       }
-      isIntroCompleteRef.current = true;
-      updateSeamCss(val);
+      return false;
+    }
+
+    function move(e) {
+      if (!stage) return;
+      const r = stage.getBoundingClientRect();
+      const now = performance.now();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top) / r.height;
+      intro = false;
+      if (px > -0.1 && px < 1.1 && py > -0.1 && py < 1.1) {
+        if (!active()) {
+          sh.forEach((s) => {
+            s.x = px + s.ox;
+            s.y = py + s.oy;
+            s.vx = s.vy = 0;
+          });
+        }
+        tx = px;
+        ty = py;
+        lm = now;
+      } else {
+        lm = Math.min(lm, now - 500);
+      }
+    }
+
+    function leave() {
+      lm = Math.min(lm, performance.now() - 500);
+    }
+
+    hero.addEventListener('pointermove', move);
+    hero.addEventListener('pointerdown', move);
+    const handlePointerUp = (e) => {
+      if (e.pointerType !== 'mouse') leave();
     };
+    hero.addEventListener('pointerup', handlePointerUp);
+    hero.addEventListener('pointerleave', leave);
+
+    // Outline loop with harmonic wobble & stretch
+    function loop(x, y, R, st, ang, ph, wob, eps) {
+      const n = 44;
+      const c = Math.cos(ang);
+      const sn = Math.sin(ang);
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * TAU;
+        const w = 1 + wob * (
+          0.13 * Math.sin(2 * a + T * 1.3 + ph) +
+          0.1 * Math.sin(3 * a - T * 1.7 + ph * 1.7) +
+          0.05 * Math.sin(5 * a + T * 2.3 + ph * 0.6)
+        );
+        const rr = R * w + eps;
+        const ux = Math.cos(a) * rr * (1 + st);
+        const uy = (Math.sin(a) * rr) / (1 + st * 0.55);
+        const X = x + ux * c - uy * sn;
+        const Y = y + ux * sn + uy * c;
+        if (k) ctx.lineTo(X, Y);
+        else ctx.moveTo(X, Y);
+      }
+      ctx.closePath();
+    }
+
+    // Slime trace with bridge beads joining neighbouring blobs
+    function trace(eps) {
+      ctx.beginPath();
+      for (let i = 0; i < sh.length; i++) {
+        const a = sh[i];
+        if (a.R <= 0.003) continue;
+        loop(a.x, a.y, a.R, a.st, a.ang, a.ph, 1, eps);
+        const b = sh[i + 1];
+        if (b && b.R > 0.003) {
+          for (let m = 1; m <= 4; m++) {
+            const f = m / 5;
+            loop(
+              a.x + (b.x - a.x) * f,
+              a.y + (b.y - a.y) * f,
+              (a.R + (b.R - a.R) * f) * 0.9,
+              0,
+              0,
+              a.ph + m,
+              0.6,
+              eps
+            );
+          }
+        }
+      }
+    }
+
+    function draw(act) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.setTransform(S * D, 0, 0, S * D, 0, 0);
+      ctx.imageSmoothingQuality = 'high';
+
+      // Base unmasked portrait
+      ctx.drawImage(bi, 0, 0, 1, 1);
+
+      if (!act) return;
+
+      // Reveal clipped Spider-Man mask
+      ctx.save();
+      trace(0);
+      ctx.clip();
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.restore();
+
+      ctx.save();
+      trace(1.4 / S);
+      ctx.clip();
+      ctx.drawImage(ri, 0, 0, 1, 1);
+      ctx.restore();
+    }
+
+    function frame(ts) {
+      const dt = prev === null ? 0.016 : Math.min((ts - prev) / 1000, 0.034);
+      prev = ts;
+      T = ts / 1000;
+
+      if (intro) {
+        if (t0 === null) t0 = ts + 900;
+        const p = clamp((ts - t0) / 2600, 0, 1);
+        if (ts > t0) {
+          tx = 0.2 + 0.62 * ease(p);
+          ty = 0.4 + 0.1 * Math.sin(p * Math.PI * 2);
+          lm = ts;
+        }
+        if (p >= 1) intro = false;
+      }
+
+      let act = false;
+      sh.forEach((s) => {
+        const alive = lm > 0 && ts - lm < 2600 + s.i * 700;
+        const Tx = tx + s.ox + Math.sin(ts / (700 + s.i * 130) + s.i) * 0.012;
+        const Ty = ty + s.oy + Math.cos(ts / (830 + s.i * 90) + s.i * 2) * 0.012;
+        const tR = alive ? s.sz : 0;
+
+        if (reduce) {
+          s.x = Tx;
+          s.y = Ty;
+          s.R = tR;
+        } else {
+          const c = 2 * 0.55 * Math.sqrt(s.k);
+          s.vx += ((Tx - s.x) * s.k - s.vx * c) * dt;
+          s.vy += ((Ty - s.y) * s.k - s.vy * c) * dt;
+          s.x += s.vx * dt;
+          s.y += s.vy * dt;
+          s.vR += ((tR - s.R) * 40 - s.vR * 9) * dt;
+          s.R += s.vR * dt;
+        }
+
+        if (s.R < 0) {
+          s.R = 0;
+          s.vR = 0;
+        }
+
+        const sp = Math.hypot(s.vx, s.vy);
+        s.st += (clamp(sp * 0.16, 0, 0.5) - s.st) * 0.15;
+        if (sp > 0.05) s.ang = Math.atan2(s.vy, s.vx);
+        if (s.R > 0.003) act = true;
+      });
+
+      if ((act || wasAct || dirty) && bi.complete && ri.complete) {
+        draw(act);
+        dirty = false;
+      }
+      wasAct = act;
+
+      animFrameIdRef.current = requestAnimationFrame(frame);
+    }
+
+    animFrameIdRef.current = requestAnimationFrame(frame);
+
+    // Programmatic test helper
+    setRevealProgrammaticRef.current = (val) => {
+      if (val > 0.05) {
+        tx = 0.5;
+        ty = 0.4;
+        lm = performance.now();
+      } else {
+        lm = 0;
+      }
+      dirty = true;
+    };
+    window.__setHeroReveal = setRevealProgrammaticRef.current;
+
     return () => {
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+      if (ro) ro.disconnect();
+      else window.removeEventListener('resize', fit);
+      hero.removeEventListener('pointermove', move);
+      hero.removeEventListener('pointerdown', move);
+      hero.removeEventListener('pointerup', handlePointerUp);
+      hero.removeEventListener('pointerleave', leave);
       delete window.__setHeroReveal;
     };
-  }, [updateSeamCss]);
-
-  // FitText implementation: dynamically size MAYURESH and SONAWANE to fit their allocated width
-  const updateFitText = useCallback(() => {
-    if (!stageRef.current) return;
-    const stageWidth = stageRef.current.clientWidth;
-    if (!stageWidth) return;
-
-    // Back name: MAYURESH targets ~90vw (0.90 of stage width)
-    const targetBackWidth = stageWidth * 0.90;
-    if (backNameTextDayRef.current) {
-      backNameTextDayRef.current.style.fontSize = '100px';
-      const wDay = backNameTextDayRef.current.offsetWidth || 1;
-      const sizeDay = Math.floor((targetBackWidth / wDay) * 100);
-      backNameTextDayRef.current.style.fontSize = `${sizeDay}px`;
-      if (backNameTextNightRef.current) {
-        backNameTextNightRef.current.style.fontSize = `${sizeDay}px`;
-      }
-    }
-
-    // Front name: SONAWANE targets ~52-58vw, right-aligned
-    const frontRatio = stageWidth < 1024 ? 0.50 : 0.58;
-    const targetFrontWidth = stageWidth * frontRatio;
-    if (frontNameTextDayRef.current) {
-      frontNameTextDayRef.current.style.fontSize = '100px';
-      const wFront = frontNameTextDayRef.current.offsetWidth || 1;
-      const sizeFront = Math.floor((targetFrontWidth / wFront) * 100);
-      frontNameTextDayRef.current.style.fontSize = `${sizeFront}px`;
-      if (frontNameTextNightRef.current) {
-        frontNameTextNightRef.current.style.fontSize = `${sizeFront}px`;
-      }
-    }
   }, []);
 
-  useLayoutEffect(() => {
-    updateFitText();
-    window.addEventListener('resize', updateFitText);
-    return () => window.removeEventListener('resize', updateFitText);
-  }, [updateFitText]);
-
-  // Initialize GSAP QuickTo setters
-  useEffect(() => {
-    const proxy = { reveal: 0 };
-    quickRevealRef.current = gsap.quickTo(proxy, 'reveal', {
-      duration: 0.55,
-      ease: 'power2.out',
-      onUpdate: () => {
-        updateSeamCss(proxy.reveal);
-      },
-    });
-
-    if (backNameBoxRef.current) {
-      quickParallaxBackRef.current = gsap.quickTo(
-        backNameBoxRef.current,
-        'x',
-        { duration: 0.8, ease: 'power2.out' }
-      );
-    }
-
-    if (frontNameBoxRef.current) {
-      quickParallaxFrontRef.current = gsap.quickTo(
-        frontNameBoxRef.current,
-        'x',
-        { duration: 0.8, ease: 'power2.out' }
-      );
-    }
-
-    if (portraitStageRef.current) {
-      quickParallaxPortraitXRef.current = gsap.quickTo(portraitStageRef.current, 'x', {
-        duration: 0.8,
-        ease: 'power2.out',
-      });
-      quickParallaxPortraitYRef.current = gsap.quickTo(portraitStageRef.current, 'y', {
-        duration: 0.8,
-        ease: 'power2.out',
-      });
-    }
-
-    if (cursorFollowerRef.current) {
-      quickCursorXRef.current = gsap.quickTo(cursorFollowerRef.current, 'x', {
-        duration: 0.2,
-        ease: 'power3.out',
-      });
-      quickCursorYRef.current = gsap.quickTo(cursorFollowerRef.current, 'y', {
-        duration: 0.2,
-        ease: 'power3.out',
-      });
-    }
-  }, [updateSeamCss]);
-
-  // Pointer move handler (Desktop parallax & capped reveal mapping)
-  const handlePointerMove = (e) => {
-    if (!isIntroCompleteRef.current) return;
-    if (isTouchDevice) return;
-
-    if (!hasInteracted) setHasInteracted(true);
-
-    const rect = stageRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const normX = (e.clientX - rect.left) / rect.width;
-    const normY = (e.clientY - rect.top) / rect.height;
-    setMousePos({ x: normX, y: normY });
-
-    if (quickCursorXRef.current && quickCursorYRef.current) {
-      quickCursorXRef.current(e.clientX);
-      quickCursorYRef.current(e.clientY);
-    }
-
-    const dx = normX - 0.5;
-    const dy = normY - 0.5;
-
-    if (quickParallaxBackRef.current) quickParallaxBackRef.current(dx * -12);
-    if (quickParallaxFrontRef.current) quickParallaxFrontRef.current(dx * 18);
-    if (quickParallaxPortraitXRef.current) quickParallaxPortraitXRef.current(dx * 6);
-    if (quickParallaxPortraitYRef.current) quickParallaxPortraitYRef.current(dy * 4);
-
-    // Subtle 3D tilt on portrait
-    if (portraitStageRef.current) {
-      gsap.to(portraitStageRef.current, {
-        rotationY: dx * 2.5,
-        rotationX: -dy * 1.5,
-        duration: 0.8,
-        ease: 'power2.out',
-      });
-    }
-
-    // Mask interaction: right side of stage maps reveal to [0, 0.52]
-    // Capped so seam never reaches or covers the left copy column
-    if (normX > 0.46) {
-      const mappedReveal = Math.min(0.52, (normX - 0.46) / 0.54);
-      if (quickRevealRef.current) quickRevealRef.current(mappedReveal);
-    } else {
-      if (quickRevealRef.current) quickRevealRef.current(0.0);
-    }
-
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = setTimeout(() => {
-      if (quickRevealRef.current) quickRevealRef.current(0.0);
-    }, 1500);
-  };
-
-  const handlePointerLeave = () => {
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    if (quickRevealRef.current) quickRevealRef.current(0.0);
-    setIsOverPortrait(false);
-  };
-
-  // Keyboard navigation & accessibility handlers
-  const handleKeyDown = (e) => {
-    if (!hasInteracted) setHasInteracted(true);
-    let newReveal = reveal;
-
-    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      newReveal = Math.min(0.52, reveal + 0.1);
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      newReveal = Math.max(0.0, reveal - 0.1);
-    } else if (e.key === 'Home' || e.key === 'Escape') {
-      e.preventDefault();
-      newReveal = 0.0;
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      newReveal = 0.52;
-    }
-
-    if (quickRevealRef.current) quickRevealRef.current(newReveal);
-  };
-
-  // Touch Drag Support
-  const touchStartXRef = useRef(0);
-  const touchStartYRef = useRef(0);
-  const touchStartRevealRef = useRef(0);
-  const isHorizontalGestureRef = useRef(false);
-
-  const handleTouchStart = (e) => {
-    if (!hasInteracted) setHasInteracted(true);
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
-    touchStartRevealRef.current = reveal;
-    isHorizontalGestureRef.current = false;
-  };
-
-  const handleTouchMove = (e) => {
-    const diffX = e.touches[0].clientX - touchStartXRef.current;
-    const diffY = e.touches[0].clientY - touchStartYRef.current;
-
-    if (!isHorizontalGestureRef.current && Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 8) {
-      isHorizontalGestureRef.current = true;
-    }
-
-    if (isHorizontalGestureRef.current) {
-      const delta = -diffX / window.innerWidth;
-      const targetVal = Math.max(0.0, Math.min(0.52, touchStartRevealRef.current + delta));
-      updateSeamCss(targetVal);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setTimeout(() => {
-      if (quickRevealRef.current) quickRevealRef.current(0.0);
-    }, 1200);
-  };
-
-  // Master GSAP Intro Timeline & ScrollTrigger
-  useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (prefersReducedMotion) {
-      updateSeamCss(0.0);
-      isIntroCompleteRef.current = true;
-      return;
-    }
-
-    const ctx = gsap.context(() => {
-      const master = gsap.timeline({
-        onComplete: () => {
-          isIntroCompleteRef.current = true;
-        },
-      });
-      masterTimelineRef.current = master;
-
-      // 0.00 - 0.50: Hairlines
-      master.fromTo(
-        '.hero-hairline',
-        { scaleY: 0, transformOrigin: 'top center' },
-        { scaleY: 1, duration: 0.5, ease: 'expo.out', stagger: 0.06 }
-      );
-
-      // 0.15 - 1.00: "MAYURESH" letters rise
-      master.fromTo(
-        '.back-name-char',
-        { yPercent: 110 },
-        { yPercent: 0, duration: 0.85, ease: 'expo.out', stagger: 0.04 },
-        0.15
-      );
-
-      // 0.50 - 1.60: Portrait reveal
-      master.fromTo(
-        '.portrait-unmasked-layer',
-        { clipPath: 'inset(100% 0% 0% 0%)', scale: 1.08, filter: 'brightness(0.7) blur(4px)' },
-        {
-          clipPath: 'inset(0% 0% 0% 0%)',
-          scale: 1.0,
-          filter: 'brightness(1) blur(0px)',
-          duration: 1.1,
-          ease: 'power3.inOut',
-        },
-        0.5
-      );
-
-      // 0.90 - 1.70: "SONAWANE" rises in front of torso
-      master.fromTo(
-        '.front-name-char',
-        { yPercent: 110 },
-        { yPercent: 0, duration: 0.85, ease: 'expo.out', stagger: 0.035 },
-        0.9
-      );
-
-      // 1.20 - 1.90: Editorial Copy line-by-line reveal
-      master.fromTo(
-        '.copy-reveal-line',
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.7, ease: 'power3.out', stagger: 0.08 },
-        1.2
-      );
-
-      // 1.80 - 2.50: Seam Peek (0 -> 0.28 -> 0)
-      master.to(
-        { val: 0.0 },
-        {
-          val: 0.28,
-          duration: 0.4,
-          ease: 'power2.inOut',
-          onUpdate: function () {
-            updateSeamCss(this.targets()[0].val);
-          },
-        },
-        1.8
-      );
-      master.to(
-        { val: 0.28 },
-        {
-          val: 0.0,
-          duration: 0.4,
-          ease: 'power2.out',
-          onUpdate: function () {
-            updateSeamCss(this.targets()[0].val);
-          },
-        },
-        2.2
-      );
-
-      // Scroll-Linked Hero Exit Sweep (NO pinning)
-      ScrollTrigger.create({
-        trigger: heroRef.current,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: true,
-        onUpdate: (self) => {
-          if (!isIntroCompleteRef.current) return;
-          const pScroll = self.progress;
-          if (portraitStageRef.current) {
-            gsap.set(portraitStageRef.current, { yPercent: -10 * pScroll });
-          }
-          if (backNameBoxRef.current) {
-            gsap.set(backNameBoxRef.current, { xPercent: -5 * pScroll });
-          }
-          if (frontNameBoxRef.current) {
-            gsap.set(frontNameBoxRef.current, { xPercent: 5 * pScroll });
-          }
-          if (pScroll > 0.08) {
-            const exitReveal = Math.min(0.52, (pScroll - 0.08) / 0.82);
-            updateSeamCss(exitReveal);
-          }
-        },
-      });
-    }, heroRef);
-
-    return () => ctx.revert();
-  }, [updateSeamCss]);
-
-  // Seam clip-path calculation for the Night/Masked layer stack
-  // Diagonal cut: Angle -12deg across height
-  // When reveal = 0, polygon is completely 0 width (outside viewport)
-  const angleOffset = 14;
-  const p = reveal;
-  const topEdge = Math.max(0, Math.min(100, p * 115 + angleOffset));
-  const bottomEdge = Math.max(0, Math.min(100, p * 115 - angleOffset));
-
-  const nightClipStyle = {
-    clipPath: reveal < 0.01 ? 'polygon(0 0, 0 0, 0 0, 0 0)' : `polygon(0% 0%, ${topEdge}% 0%, ${bottomEdge}% 100%, 0% 100%)`,
-    WebkitClipPath: reveal < 0.01 ? 'polygon(0 0, 0 0, 0 0, 0 0)' : `polygon(0% 0%, ${topEdge}% 0%, ${bottomEdge}% 100%, 0% 100%)`,
-    opacity: reveal < 0.01 ? 0 : 1,
-    visibility: reveal < 0.01 ? 'hidden' : 'visible',
-  };
-
   return (
-    <section
+    <main
       id="hero"
       ref={heroRef}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      role="slider"
-      aria-label="Reveal the Spider-Man mask"
-      aria-valuemin={0}
-      aria-valuemax={52}
-      aria-valuenow={Math.round(reveal * 100)}
-      className="relative min-h-[100svh] h-[100svh] w-full pt-16 overflow-hidden select-none outline-none focus-visible:ring-2 focus-visible:ring-volt touch-pan-y"
+      className="hero relative w-full h-[100svh] min-h-[600px] overflow-hidden touch-none select-none"
       style={{
-        '--reveal': reveal.toString(),
-        '--seam-angle': '-12deg',
-        '--chin-y': '52%',
-        backgroundColor: '#EDEAE2',
+        '--bg': '#f6f5f0',
+        '--ink': '#16161a',
+        '--mute': '#6d6d72',
+        '--line': 'rgba(22,22,26,.07)',
+        '--red': '#d9252b',
+        backgroundColor: 'var(--bg)',
+        color: 'var(--ink)',
+        fontFamily: '"Bricolage Grotesque", system-ui, -apple-system, sans-serif',
       }}
     >
-      {/* Hero Stage Sized to 100svh minus Nav Height */}
-      <div
-        ref={stageRef}
-        className="relative w-full h-[calc(100svh-64px)] overflow-hidden"
+      {/* Background Flow Curves */}
+      <svg
+        className="lines absolute inset-0 w-full h-full pointer-events-none fill-none"
+        viewBox="0 0 1200 800"
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        style={{
+          stroke: 'var(--line)',
+          strokeWidth: 1.5,
+        }}
       >
-        {/* =========================================================================
-            WORLD 1: DAYLIGHT (UNMASKED) — Editorial Off-White Palette
-            ========================================================================= */}
-        <div
-          ref={daylightRef}
-          className="absolute inset-0 w-full h-full bg-[#EDEAE2] overflow-hidden"
-        >
-          {/* Subtle radial vignette */}
-          <div className="absolute inset-0 bg-radial from-transparent via-black/[0.01] to-black/[0.04] pointer-events-none" />
+        <path d="M-20 160C180 60 330 260 520 190S800 40 1000 130 1180 90 1230 60" />
+        <path d="M-20 330C150 250 300 430 500 360S790 230 980 310 1150 290 1230 250" />
+        <path d="M-20 520C200 440 330 640 560 560S850 420 1020 520 1160 500 1230 470" />
+        <path d="M-20 700C220 620 360 800 600 730S900 610 1060 700" />
+      </svg>
 
-          {/* 12-Column Hairline Grid */}
-          <div className="absolute inset-0 pointer-events-none max-w-[1720px] mx-auto px-4 sm:px-8 grid grid-cols-12 gap-4">
-            <div className="hero-hairline col-span-1 border-r border-[#121212]/[0.08] h-full" />
-            <div className="hero-hairline hidden md:block col-span-5 border-r border-[#121212]/[0.05] h-full" />
-            <div className="hero-hairline hidden lg:block col-span-5 border-r border-[#121212]/[0.05] h-full" />
-            <div className="hero-hairline col-span-1 border-r border-[#121212]/[0.08] h-full" />
-          </div>
-
-          {/* Ambient rim glow behind head */}
-          <div className="hero-rim-glow absolute top-[28%] left-[60%] -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-radial from-volt/15 via-volt/5 to-transparent rounded-full filter blur-3xl pointer-events-none" />
-
-          {/* Back Name Layer: "MAYURESH" (Band behind head, Y: 18% to 42% of stage) */}
-          <div
-            ref={backNameBoxRef}
-            className="absolute top-[20%] sm:top-[18%] left-0 right-0 w-full flex items-center justify-center pointer-events-none z-0"
-          >
-            <div className="overflow-hidden leading-none select-none text-center">
-              <span
-                ref={backNameTextDayRef}
-                className="font-display font-black tracking-tighter text-[#121212] uppercase inline-block whitespace-nowrap"
-              >
-                {'MAYURESH'.split('').map((char, i) => (
-                  <span key={i} className="back-name-char inline-block">
-                    {char}
-                  </span>
-                ))}
-              </span>
-            </div>
-          </div>
-
-          {/* Primary Portrait Stage (Unmasked) — Anchored strictly to bottom: 0 */}
-          <div
-            ref={portraitStageRef}
-            onMouseEnter={() => setIsOverPortrait(true)}
-            onMouseLeave={() => setIsOverPortrait(false)}
-            className="absolute bottom-0 left-[54%] sm:left-[58%] lg:left-[60%] -translate-x-1/2 w-full max-w-[560px] sm:max-w-[680px] lg:max-w-[760px] h-[78%] sm:h-[84%] lg:h-[90%] flex items-end justify-center pointer-events-auto z-10"
-          >
-            <picture className="portrait-unmasked-layer relative w-full h-full block">
-              <source
-                type="image/webp"
-                srcSet="/assets/hero/hero-front-640.webp 640w, /assets/hero/hero-front-960.webp 960w, /assets/hero/hero-front-1440.webp 1440w, /assets/hero/hero-front.webp 1600w"
-                sizes="(max-width: 768px) 90vw, (max-width: 1280px) 65vw, 760px"
-              />
-              <img
-                src="/assets/hero/hero-front.webp"
-                alt="Portrait of Mayuresh Sonawane"
-                fetchpriority="high"
-                loading="eager"
-                className="w-full h-full object-contain object-bottom pointer-events-none select-none"
-              />
-            </picture>
-
-            {/* Optional WebGL Shader Enhancement Layer */}
-            {webglEnabled && (
-              <HeroShaderCanvas
-                reveal={reveal}
-                seamAngle={-12.0}
-                mousePos={mousePos}
-                isHovered={isOverPortrait}
-                enabled={webglEnabled}
-              />
-            )}
-          </div>
-
-          {/* Front Name Layer: "SONAWANE" (Right-aligned, strictly BELOW chin line, starting at X ~ 36vw) */}
-          <div
-            ref={frontNameBoxRef}
-            className="absolute bottom-[32%] sm:bottom-[5%] right-[2vw] sm:right-[3vw] max-w-[52vw] lg:max-w-[58vw] flex items-center justify-end pointer-events-none z-20"
-          >
-            <div className="overflow-hidden leading-none select-none text-right">
-              <span
-                ref={frontNameTextDayRef}
-                className="font-display font-black tracking-tightest text-[#121212] uppercase inline-block whitespace-nowrap"
-              >
-                {'SONAWANE'.split('').map((char, i) => (
-                  <span key={i} className="front-name-char inline-block">
-                    {char}
-                  </span>
-                ))}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* =========================================================================
-            WORLD 2: NIGHT / MASKED — Clipped by the diagonal seam polygon
-            Only duplicates the name layers (inverted to off-white) & Spider-Man portrait.
-            The copy column is NOT duplicated here so there is zero overlap.
-            ========================================================================= */}
-        <div
-          ref={nightRef}
-          style={nightClipStyle}
-          className="absolute inset-0 w-full h-full bg-[#121212] overflow-hidden pointer-events-none z-20 transition-opacity duration-150"
-          aria-hidden="true"
-        >
-          {/* Hairlines grid */}
-          <div className="absolute inset-0 max-w-[1720px] mx-auto px-4 sm:px-8 grid grid-cols-12 gap-4">
-            <div className="col-span-1 border-r border-volt/10 h-full" />
-            <div className="hidden md:block col-span-5 border-r border-volt/5 h-full" />
-            <div className="hidden lg:block col-span-5 border-r border-volt/5 h-full" />
-            <div className="col-span-1 border-r border-volt/10 h-full" />
-          </div>
-
-          {/* Back Name Layer in Off-White (Night) */}
-          <div className="absolute top-[20%] sm:top-[18%] left-0 right-0 w-full flex items-center justify-center leading-none select-none z-0">
-            <span
-              ref={backNameTextNightRef}
-              className="font-display font-black tracking-tighter text-[#EDEAE2]/90 uppercase whitespace-nowrap"
-            >
-              MAYURESH
-            </span>
-          </div>
-
-          {/* Secondary Portrait Cutout B (Spider-Man Mask) Registered exactly on A */}
-          <div className="absolute bottom-0 left-[54%] sm:left-[58%] lg:left-[60%] -translate-x-1/2 w-full max-w-[560px] sm:max-w-[680px] lg:max-w-[760px] h-[78%] sm:h-[84%] lg:h-[90%] flex items-end justify-center z-10">
-            <picture className="relative w-full h-full block">
-              <source
-                type="image/webp"
-                srcSet="/assets/hero/hero-mask-640.webp 640w, /assets/hero/hero-mask-960.webp 960w, /assets/hero/hero-mask-1440.webp 1440w, /assets/hero/hero-mask.webp 1600w"
-                sizes="(max-width: 768px) 90vw, (max-width: 1280px) 65vw, 760px"
-              />
-              <img
-                src="/assets/hero/hero-mask.webp"
-                alt="Mayuresh Sonawane wearing Spider-Man mask"
-                className="w-full h-full object-contain object-bottom pointer-events-none select-none"
-              />
-            </picture>
-          </div>
-
-          {/* Front Name Layer in Off-White (Night) */}
-          <div className="absolute bottom-[32%] sm:bottom-[5%] right-[2vw] sm:right-[3vw] max-w-[52vw] lg:max-w-[58vw] flex items-center justify-end leading-none select-none z-20">
-            <span
-              ref={frontNameTextNightRef}
-              className="font-display font-black tracking-tightest text-[#EDEAE2] uppercase whitespace-nowrap"
-            >
-              SONAWANE
-            </span>
-          </div>
-        </div>
-
-        {/* =========================================================================
-            LEFT COLUMN EDITORIAL NARRATIVE (Solid Charcoal, Single Instance, Z-30)
-            X spans 4vw to 32vw. Never covered by seam or overlapped by front name.
-            ========================================================================= */}
-        <div
-          ref={copyColumnRef}
-          className="absolute bottom-6 sm:bottom-10 left-4 sm:left-8 lg:left-12 z-30 max-w-[380px] lg:max-w-[420px] flex flex-col items-start gap-3.5 pointer-events-auto"
-        >
-          {/* Label Pill */}
-          <div className="copy-reveal-line inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#121212]/[0.06] border border-[#121212]/[0.1] font-mono text-[10px] sm:text-[11px] text-[#121212] uppercase tracking-widest font-semibold">
-            <span className="w-2 h-2 rounded-full bg-volt" />
-            <span>{personalInfo.title}</span>
-          </div>
-
-          {/* Headline (Normal Solid Charcoal Text, 3 lines max) */}
-          <h1 className="copy-reveal-line font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl leading-[1.05] text-[#121212] tracking-tight uppercase">
-            "{personalInfo.heroHeadline}"
+      {/* Top Editorial Header */}
+      <header className="absolute inset-x-0 top-0 flex justify-between items-start p-[clamp(16px,2.4vw,32px)] z-30 pointer-events-auto">
+        <div className="flex flex-col items-start">
+          <h1 className="mark font-extrabold text-[clamp(28px,3.4vw,46px)] leading-[0.88] tracking-[-0.04em] m-0 text-[var(--ink)]">
+            Mayuresh<br />Sonawane
           </h1>
+          <span className="font-mono text-[11px] uppercase tracking-widest text-[var(--mute)] mt-2 font-semibold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-volt border border-volt-deep animate-volt-pulse" />
+            <span>Creative Developer &amp; Builder</span>
+          </span>
+        </div>
 
-          {/* Support Paragraph (16-18px, max-width 36ch) */}
-          <p className="copy-reveal-line font-body text-xs sm:text-[15px] text-[#121212]/80 leading-relaxed max-w-[36ch]">
-            {personalInfo.supportingDescription}
-          </p>
-
-          {/* Action CTAs (Lime fill, charcoal text) */}
-          <div className="copy-reveal-line flex items-center gap-3 pt-1">
-            <a
-              href="#about"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-volt text-[#121212] font-mono text-xs uppercase tracking-wider font-bold shadow-sm hover:brightness-105 active:scale-95 transition-all"
-            >
-              <span>EXPLORE BUILDS</span>
-              <ArrowDown className="w-3.5 h-3.5" />
-            </a>
-
+        <nav aria-label="Main" className="flex items-center gap-2 flex-wrap justify-end">
+          <a
+            href="#about"
+            className="hero-nav-btn text-[var(--ink)] no-underline font-bold text-[14px] px-4 py-2 border-2 border-[var(--ink)] rounded-xl transition-colors duration-200 hover:bg-[var(--ink)] hover:text-[var(--bg)]"
+          >
+            About
+          </a>
+          <a
+            href="#hall-of-fame"
+            className="hero-nav-btn text-[var(--ink)] no-underline font-bold text-[14px] px-4 py-2 border-2 border-[var(--ink)] rounded-xl transition-colors duration-200 hover:bg-[var(--ink)] hover:text-[var(--bg)]"
+          >
+            Work
+          </a>
+          <a
+            href="#mask-collection"
+            className="hero-nav-btn text-[var(--ink)] no-underline font-bold text-[14px] px-4 py-2 border-2 border-[var(--ink)] rounded-xl transition-colors duration-200 hover:bg-[var(--ink)] hover:text-[var(--bg)]"
+          >
+            Masks
+          </a>
+          <a
+            href="#journey"
+            className="hero-nav-btn hidden md:inline-block text-[var(--ink)] no-underline font-bold text-[14px] px-4 py-2 border-2 border-[var(--ink)] rounded-xl transition-colors duration-200 hover:bg-[var(--ink)] hover:text-[var(--bg)]"
+          >
+            Journey
+          </a>
+          <a
+            href="#connect"
+            className="hero-nav-btn text-[var(--ink)] no-underline font-bold text-[14px] px-4 py-2 border-2 border-[var(--ink)] rounded-xl transition-colors duration-200 hover:bg-[var(--ink)] hover:text-[var(--bg)]"
+          >
+            Contact
+          </a>
+          {onOpenAdmin && (
             <button
-              onClick={() => {
-                if (!hasInteracted) setHasInteracted(true);
-                const nextVal = reveal > 0.25 ? 0.0 : 0.52;
-                if (quickRevealRef.current) quickRevealRef.current(nextVal);
-              }}
-              aria-pressed={reveal > 0.25}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-[#121212]/[0.08] hover:bg-[#121212]/[0.14] text-[#121212] font-mono text-xs uppercase tracking-wider font-semibold transition-all border border-[#121212]/[0.1]"
-              title="Toggle Spider-Man mask state"
+              onClick={onOpenAdmin}
+              className="hero-nav-btn inline-flex items-center gap-1.5 text-[var(--ink)] no-underline font-bold text-[14px] px-4 py-2 border-2 border-[var(--ink)] rounded-xl transition-colors duration-200 hover:bg-[var(--ink)] hover:text-[var(--bg)] cursor-pointer"
+              title="Open protected admin dashboard"
             >
-              <Sparkles className="w-3 h-3 text-volt-deep" />
-              <span>{reveal > 0.25 ? 'UNMASK' : 'MASK'}</span>
+              <Cpu className="w-3.5 h-3.5 text-volt-deep" />
+              <span>Admin</span>
             </button>
-          </div>
-        </div>
-
-        {/* Scroll cue & interaction hint (Bottom-Right) */}
-        <div className="absolute bottom-6 right-6 sm:right-8 z-30 flex flex-col items-end gap-1.5 text-right pointer-events-none">
-          {!hasInteracted && (
-            <span className="font-mono text-[9px] text-[#121212]/60 uppercase tracking-widest animate-pulse">
-              {isTouchDevice ? 'DRAG TO MEET THE MASK' : 'MOVE TO MEET THE MASK'}
-            </span>
           )}
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] text-[#121212]/70 uppercase tracking-wider font-semibold">
-              SCROLL
-            </span>
-            <div className="w-[1.5px] h-5 bg-volt animate-bounce" />
-          </div>
-        </div>
+        </nav>
+      </header>
 
-        {/* =========================================================================
-            THE SEAM: 1.5px Electric Lime Edge with Glow & Tick Marks
-            Mathematically aligned to topEdge and bottomEdge coordinates.
-            Completely hidden at rest (reveal < 0.02).
-            ========================================================================= */}
-        {reveal >= 0.02 && (
-          <svg
-            className="absolute inset-0 w-full h-full pointer-events-none z-30 overflow-visible"
-            style={{
-              opacity: reveal >= 0.02 ? 1 : 0,
-              visibility: reveal >= 0.02 ? 'visible' : 'hidden',
-            }}
-          >
-            <line
-              x1={`${topEdge}%`}
-              y1="0%"
-              x2={`${bottomEdge}%`}
-              y2="100%"
-              stroke="#D2FD52"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              className="filter drop-shadow-[0_0_8px_#D2FD52]"
-            />
-            {/* Top tick mark */}
-            <line
-              x1={`${topEdge - 0.8}%`}
-              y1="16"
-              x2={`${topEdge + 0.8}%`}
-              y2="16"
-              stroke="#D2FD52"
-              strokeWidth="2"
-            />
-            {/* Bottom tick mark */}
-            <line
-              x1={`${bottomEdge - 0.8}%`}
-              y1="calc(100% - 16px)"
-              x2={`${bottomEdge + 0.8}%`}
-              y2="calc(100% - 16px)"
-              stroke="#D2FD52"
-              strokeWidth="2"
-            />
-          </svg>
-        )}
+      {/* Central Portrait & Liquid Canvas Stage */}
+      <div
+        id="stage"
+        ref={stageRef}
+        className="stage absolute bottom-0 left-1/2 w-[min(100vw,94vh)] aspect-square -translate-x-1/2 z-10"
+        style={{
+          animation: 'rise 1.2s cubic-bezier(.7,0,.2,1) both',
+        }}
+      >
+        {/* Source images for Canvas */}
+        <img
+          ref={baseImgRef}
+          id="base"
+          src="/assets/hero/slime-base.webp"
+          alt="Portrait of Mayuresh Sonawane"
+          width={900}
+          height={900}
+          className="hidden"
+        />
+        <img
+          ref={revImgRef}
+          id="rev"
+          src="/assets/hero/slime-rev.webp"
+          alt="Mayuresh Sonawane wearing Spider-Man mask"
+          width={900}
+          height={900}
+          className="hidden"
+        />
 
-        {/* CUSTOM CURSOR FOLLOWER */}
-        {!isTouchDevice && (
-          <div
-            ref={cursorFollowerRef}
-            className={`fixed pointer-events-none z-50 rounded-full border border-volt transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-mono text-[9px] uppercase tracking-wider ${
-              isOverPortrait
-                ? 'w-16 h-16 bg-volt/20 backdrop-blur-xs text-charcoal font-bold shadow-lg'
-                : 'w-3 h-3 bg-volt'
-            }`}
-          >
-            {isOverPortrait && <span>MASK</span>}
-          </div>
-        )}
+        {/* Liquid Slime Spring Canvas */}
+        <canvas
+          ref={canvasRef}
+          id="cv"
+          role="img"
+          aria-label="Interactive portrait of Mayuresh Sonawane"
+          className="absolute inset-0 w-full h-full block pointer-events-none"
+        />
       </div>
-    </section>
+
+      {/* Bottom-Left Hint */}
+      <p
+        className="hint absolute left-[clamp(16px,2.4vw,32px)] bottom-[calc(clamp(16px,2.4vw,32px)+env(safe-area-inset-bottom,0px))] m-0 max-w-[15ch] text-[clamp(13px,1.2vw,16px)] leading-[1.25] text-[var(--mute)] z-30 pointer-events-none bg-[var(--bg)]/80 backdrop-blur-xs px-3 py-1.5 rounded-lg border border-black/[0.04]"
+        style={{
+          animation: 'fade 1s 1.4s both',
+        }}
+      >
+        Move your cursor <b className="text-[var(--ink)] font-bold">over my face.</b>
+      </p>
+
+      {/* Bottom-Right Editorial Narrative (Desktop & Tablet) */}
+      <div
+        className="hidden sm:flex absolute right-[clamp(16px,2.4vw,32px)] bottom-[calc(clamp(16px,2.4vw,32px)+env(safe-area-inset-bottom,0px))] max-w-[320px] sm:max-w-[360px] z-30 text-right flex-col items-end gap-2 pointer-events-auto bg-[var(--bg)]/85 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-black/[0.06] shadow-xs"
+        style={{
+          animation: 'fade 1s 1.6s both',
+        }}
+      >
+        <p className="font-bold text-sm sm:text-base lg:text-lg text-[var(--ink)] leading-[1.2] tracking-tight">
+          "{personalInfo.heroHeadline}"
+        </p>
+        <p className="text-[12px] sm:text-[13px] text-[var(--mute)] leading-relaxed max-w-[30ch]">
+          {personalInfo.supportingDescription}
+        </p>
+        <a
+          href="#about"
+          onClick={onExploreClick}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--ink)] text-[var(--bg)] font-mono text-[11px] font-bold uppercase tracking-wider hover:opacity-90 active:scale-95 transition-all mt-1"
+        >
+          <span>EXPLORE BUILDS</span>
+          <ArrowDown className="w-3 h-3 text-volt" />
+        </a>
+      </div>
+
+      {/* Mobile Subtle Explore Pill */}
+      <div className="sm:hidden absolute bottom-3 right-3 z-30 pointer-events-auto">
+        <a
+          href="#about"
+          onClick={onExploreClick}
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[var(--ink)] text-[var(--bg)] font-mono text-[10px] font-bold uppercase tracking-wider shadow-sm active:scale-95 transition-all"
+        >
+          <span>EXPLORE</span>
+          <ArrowDown className="w-2.5 h-2.5 text-volt" />
+        </a>
+      </div>
+
+      {/* CSS Keyframes for Rise and Fade */}
+      <style>{`
+        @keyframes rise {
+          from { clip-path: inset(100% 0 0 0); }
+          to { clip-path: inset(0 0 0 0); }
+        }
+        @keyframes fade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .stage, .hint { animation: none !important; }
+        }
+      `}</style>
+    </main>
   );
 }
