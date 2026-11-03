@@ -53,6 +53,7 @@ export default function App() {
       touchMultiplier: 1.5,
     });
 
+    window.lenis = lenis;
     lenis.on('scroll', ScrollTrigger.update);
 
     const tickerCb = (time) => {

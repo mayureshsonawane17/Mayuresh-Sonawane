@@ -27,10 +27,21 @@ export default function Navigation({ onTriggerTransition, onOpenAdmin }) {
   ];
 
   const handleLinkClick = (e, link) => {
+    e.preventDefault();
     setMobileMenuOpen(false);
     if (onTriggerTransition) {
       onTriggerTransition(link.title);
     }
+    setTimeout(() => {
+      const target = document.querySelector(link.href);
+      if (target) {
+        if (window.lenis) {
+          window.lenis.scrollTo(target, { offset: -40, duration: 1.2 });
+        } else {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }, 500);
   };
 
   return (

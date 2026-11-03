@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { maskCollection } from '../data/portfolioData';
-import { Eye, Shield, Sparkles, AlertCircle, ArrowRight, Layers, Scan } from 'lucide-react';
+import { Shield, Sparkles, Scan } from 'lucide-react';
 
 /**
  * MaskCollection Component — "THE MASK COLLECTION"
- * Replaces the reference helmet gallery with Mayuresh's Spider-Man mask showcase.
- * Features cinematic lighting, close-up reveals, interactive specs, and clear temporary disclaimers.
+ * Features Mayuresh's signature Spider-Man outdoor vanguard photograph.
+ * Includes interactive wireframe scan, telemetry badges, and material specifications.
  */
 export default function MaskCollection() {
   const [selectedMaskIndex, setSelectedMaskIndex] = useState(0);
@@ -45,8 +45,8 @@ export default function MaskCollection() {
           </div>
 
           <div className="max-w-md font-mono text-xs text-charcoal-secondary text-left md:text-right">
-            <span>REINTERPRETING THE HELMET GALLERY INTO A CINEMATIC SPIDER-MAN MASK ARTIFACT COLLECTION.</span>
-            <div className="mt-2 text-volt font-bold">[HOVER TO REVEAL TACTILE MESH & SCHEMATICS]</div>
+            <span>AUTHENTIC OUTDOOR VANGUARD STUDY // CINEMATIC SPIDER-MAN ARTIFACT.</span>
+            <div className="mt-2 text-volt font-bold">[HOVER TO INSPECT // SCAN MESH]</div>
           </div>
         </div>
 
@@ -55,7 +55,7 @@ export default function MaskCollection() {
           <div className="flex items-center gap-2 text-volt">
             <Sparkles className="w-4 h-4 flex-shrink-0" />
             <span className="font-semibold uppercase tracking-wider">
-              {maskCollection.statusBadge || "AUTHENTIC PHYSICAL ARTIFACT // MULTI-PERSPECTIVE STUDY"}
+              {maskCollection.statusBadge || "AUTHENTIC PHYSICAL ARTIFACT // OUTDOOR VANGUARD"}
             </span>
           </div>
           <span className="hidden sm:inline text-charcoal-muted text-[10px]">
@@ -77,18 +77,8 @@ export default function MaskCollection() {
               <img
                 src={activeMask.image}
                 alt={activeMask.name}
-                className={`absolute inset-0 w-full h-full object-cover object-center filter contrast-125 transition-all duration-700 ease-out ${
-                  isHovered || wireframeMode ? 'opacity-0 scale-105' : 'opacity-90 scale-100'
-                }`}
-                loading="lazy"
-              />
-
-              {/* Secondary Reveal Image (Tactile Mesh / Lens Close-up on Hover) */}
-              <img
-                src={activeMask.revealImage}
-                alt={`${activeMask.name} Lens Detail`}
-                className={`absolute inset-0 w-full h-full object-cover object-center filter contrast-150 transition-all duration-700 ease-out ${
-                  isHovered || wireframeMode ? 'opacity-100 scale-105' : 'opacity-0 scale-95'
+                className={`absolute inset-0 w-full h-full object-cover object-center filter transition-all duration-700 ease-out ${
+                  isHovered ? 'scale-105 brightness-105 contrast-125' : 'scale-100 brightness-100 contrast-110'
                 }`}
                 loading="lazy"
               />
@@ -148,7 +138,7 @@ export default function MaskCollection() {
                 </div>
 
                 <div className="font-mono text-[10px] text-charcoal-muted uppercase">
-                  {isHovered ? 'REVEAL MODE ENGAGED' : 'HOVER TO REVEAL MESH'}
+                  {wireframeMode ? 'SCAN ACTIVE' : isHovered ? 'INSPECTION ENGAGED' : 'HOVER TO FOCUS'}
                 </div>
               </div>
             </div>
@@ -198,28 +188,47 @@ export default function MaskCollection() {
               </div>
             </div>
 
-            {/* Mask Selection Switcher Tabs */}
+            {/* Mask Selection / Curated Artifact Badge */}
             <div className="pt-6 border-t border-charcoal-border">
               <span className="block font-mono text-[10px] text-charcoal-muted uppercase tracking-widest mb-3">
-                SELECT ARTIFACT SPECIFICATION
+                {maskCollection.masks.length > 1 ? "SELECT ARTIFACT SPECIFICATION" : "ARTIFACT SPECIFICATION"}
               </span>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {maskCollection.masks.map((mask, idx) => (
-                  <button
-                    key={mask.id}
-                    onClick={() => setSelectedMaskIndex(idx)}
-                    className={`p-3 rounded-lg border text-left font-mono transition-all duration-300 ${
-                      selectedMaskIndex === idx
-                        ? 'border-volt bg-volt/10 text-white shadow-lg'
-                        : 'border-charcoal-border bg-charcoal-surface text-charcoal-secondary hover:border-white/30 hover:text-white'
-                    }`}
-                  >
-                    <span className="block text-[10px] text-volt font-bold">VIEW 0{idx + 1}</span>
-                    <span className="block text-xs font-semibold truncate uppercase mt-0.5">{mask.name.split(' // ')[0]}</span>
-                  </button>
-                ))}
-              </div>
+              {maskCollection.masks.length > 1 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {maskCollection.masks.map((mask, idx) => (
+                    <button
+                      key={mask.id}
+                      onClick={() => setSelectedMaskIndex(idx)}
+                      className={`p-3 rounded-lg border text-left font-mono transition-all duration-300 ${
+                        selectedMaskIndex === idx
+                          ? 'border-volt bg-volt/10 text-white shadow-lg'
+                          : 'border-charcoal-border bg-charcoal-surface text-charcoal-secondary hover:border-white/30 hover:text-white'
+                      }`}
+                    >
+                      <span className="block text-[10px] text-volt font-bold">VIEW 0{idx + 1}</span>
+                      <span className="block text-xs font-semibold truncate uppercase mt-0.5">{mask.name.split(' // ')[0]}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border border-volt/30 bg-charcoal-surface flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-volt animate-pulse" />
+                    <div>
+                      <span className="block font-mono text-[10px] text-volt font-bold uppercase tracking-wider">
+                        CURATED ARTIFACT EXHIBIT
+                      </span>
+                      <span className="block font-display font-bold text-sm sm:text-base text-white uppercase tracking-tight mt-0.5">
+                        {activeMask.name}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-mono text-[10px] px-2.5 py-1 rounded bg-black/60 border border-volt/20 text-volt uppercase tracking-wider">
+                    ACTIVE SPEC
+                  </span>
+                </div>
+              )}
             </div>
 
           </div>
