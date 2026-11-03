@@ -43,13 +43,8 @@ export default function SocialSection() {
       id="connect" 
       className="relative py-24 md:py-36 bg-paper-tint text-paper-ink border-b border-paper-border overflow-hidden"
     >
-      {/* Editorial Decorative Grid & Registration Crosshairs */}
+      {/* Registration Crosshairs */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="max-w-[1600px] h-full mx-auto px-4 sm:px-8 grid grid-cols-12 gap-4">
-          <div className="col-span-1 border-r border-paper-border/60 h-full"></div>
-          <div className="col-span-10 border-r border-paper-border/60 h-full hidden md:block"></div>
-          <div className="col-span-1 h-full"></div>
-        </div>
         <div className="absolute top-12 left-6 text-paper-ink/30 font-mono text-xs">+</div>
         <div className="absolute top-12 right-6 text-paper-ink/30 font-mono text-xs">+</div>
         <div className="absolute bottom-12 left-6 text-paper-ink/30 font-mono text-xs">+</div>

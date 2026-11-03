@@ -72,14 +72,6 @@ export default function Journey() {
       ref={sectionRef}
       className="relative min-h-screen py-24 lg:py-32 bg-paper text-paper-ink border-b border-paper-border overflow-hidden flex flex-col justify-between"
     >
-      {/* Editorial Decorative Grid */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="max-w-[1600px] h-full mx-auto px-4 sm:px-8 grid grid-cols-12 gap-4">
-          <div className="col-span-1 border-r border-paper-border/50 h-full"></div>
-          <div className="col-span-10 border-r border-paper-border/50 h-full hidden md:block"></div>
-          <div className="col-span-1 h-full"></div>
-        </div>
-      </div>
 
       <div className="relative z-10 max-w-[1600px] w-full mx-auto px-4 sm:px-8 mb-6">
         

@@ -24,13 +24,8 @@ export default function Footer({ onOpenAdmin }) {
   return (
     <footer className="relative bg-paper text-paper-ink border-t border-paper-border pt-20 pb-12 overflow-hidden">
       
-      {/* Decorative hairline grid & registration crosshairs */}
+      {/* Registration Crosshairs */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="max-w-[1600px] h-full mx-auto px-4 sm:px-8 grid grid-cols-12 gap-4">
-          <div className="col-span-1 border-r border-paper-border/40 h-full"></div>
-          <div className="col-span-10 border-r border-paper-border/40 h-full hidden md:block"></div>
-          <div className="col-span-1 h-full"></div>
-        </div>
         <div className="absolute top-8 left-6 text-paper-ink/20 font-mono text-xs">+</div>
         <div className="absolute top-8 right-6 text-paper-ink/20 font-mono text-xs">+</div>
       </div>

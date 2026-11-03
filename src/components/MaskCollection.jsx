@@ -19,13 +19,8 @@ export default function MaskCollection() {
       id="mask-collection"
       className="relative min-h-screen py-24 md:py-36 bg-charcoal text-charcoal-text border-b border-charcoal-border overflow-hidden"
     >
-      {/* Editorial Decorative Grid & Registration Crosshairs */}
+      {/* Registration Crosshairs */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="max-w-[1600px] h-full mx-auto px-4 sm:px-8 grid grid-cols-12 gap-4">
-          <div className="col-span-1 border-r border-charcoal-border/40 h-full"></div>
-          <div className="col-span-10 border-r border-charcoal-border/40 h-full hidden md:block"></div>
-          <div className="col-span-1 h-full"></div>
-        </div>
         <div className="absolute top-12 left-6 text-charcoal-crosshair font-mono text-xs">+</div>
         <div className="absolute top-12 right-6 text-charcoal-crosshair font-mono text-xs">+</div>
         <div className="absolute bottom-12 left-6 text-charcoal-crosshair font-mono text-xs">+</div>
