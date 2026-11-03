@@ -152,8 +152,8 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
         const hx = (e.clientX - (heroRect.left + heroRect.width * 0.5)) / (heroRect.width * 0.5);
         const hy = (e.clientY - (heroRect.top + heroRect.height * 0.5)) / (heroRect.height * 0.5);
 
-        targetParallaxX = clamp(hx * 16, -16, 16);
-        targetParallaxY = clamp(hy * 10, -10, 10);
+        targetParallaxX = clamp(hx * 14, -14, 14);
+        targetParallaxY = clamp(hy * 8, -4, 12);
         targetRotY = clamp(hx * 3.6, -3.6, 3.6);  // subtle yaw turn
         targetRotX = clamp(-hy * 2.6, -2.6, 2.6); // subtle pitch tilt
       }
@@ -230,8 +230,8 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
       ctx.setTransform(S * D, 0, 0, S * D, 0, 0);
       ctx.imageSmoothingQuality = 'high';
 
-      // Base unmasked portrait
-      ctx.drawImage(bi, 0, 0, 1, 1);
+      // Base unmasked portrait (with subtle vertical overscan to bleed cleanly off bottom)
+      ctx.drawImage(bi, 0, 0, 1, 1.05);
 
       if (!act) return;
 
@@ -239,13 +239,13 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
       ctx.save();
       trace(0);
       ctx.clip();
-      ctx.clearRect(0, 0, 1, 1);
+      ctx.clearRect(0, 0, 1, 1.05);
       ctx.restore();
 
       ctx.save();
       trace(1.4 / S);
       ctx.clip();
-      ctx.drawImage(ri, 0, 0, 1, 1);
+      ctx.drawImage(ri, 0, 0, 1, 1.05);
       ctx.restore();
     }
 
@@ -438,7 +438,7 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
       <div
         id="stage"
         ref={stageRef}
-        className="stage absolute bottom-0 left-1/2 w-[min(100vw,94vh)] aspect-square -translate-x-1/2 z-10"
+        className="stage absolute -bottom-6 sm:-bottom-8 md:-bottom-10 left-1/2 w-[clamp(440px,104vw,96vh)] aspect-square -translate-x-1/2 z-10"
         style={{
           animation: 'rise 1.2s cubic-bezier(.7,0,.2,1) both',
         }}
