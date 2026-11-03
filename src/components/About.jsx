@@ -220,7 +220,7 @@ export default function About() {
                 <span className="block font-mono text-[10px] text-paper-muted uppercase tracking-widest mb-1">
                   {personalInfo.signature.caption}
                 </span>
-                <Signature className="w-72 sm:w-96 md:w-[420px] h-28 sm:h-36 text-paper-ink" color="#08080A" />
+                <Signature className="w-72 sm:w-96 md:w-[380px] text-paper-ink" color="#08080A" />
               </div>
 
               <div className="text-right font-mono text-xs text-paper-secondary">
