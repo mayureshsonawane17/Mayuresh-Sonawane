@@ -18,6 +18,7 @@ import { personalInfo } from '../data/portfolioData';
 export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition }) {
   const heroRef = useRef(null);
   const stageRef = useRef(null);
+  const parallaxWrapperRef = useRef(null);
   const canvasRef = useRef(null);
   const baseImgRef = useRef(null);
   const revImgRef = useRef(null);
@@ -28,12 +29,13 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
 
   useEffect(() => {
     const stage = stageRef.current;
+    const parallaxWrapper = parallaxWrapperRef.current;
     const cv = canvasRef.current;
     const hero = heroRef.current;
     const bi = baseImgRef.current;
     const ri = revImgRef.current;
 
-    if (!stage || !cv || !hero || !bi || !ri) return;
+    if (!stage || !cv || !hero || !bi || !ri || !parallaxWrapper) return;
 
     const ctx = cv.getContext('2d');
     if (!ctx) return;
@@ -51,6 +53,16 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
     let t0 = null;
     let prev = null;
     const sh = [];
+
+    // Smooth cursor-tracking parallax physics
+    let targetParallaxX = 0;
+    let targetParallaxY = 0;
+    let curParallaxX = 0;
+    let curParallaxY = 0;
+    let targetRotX = 0;
+    let targetRotY = 0;
+    let curRotX = 0;
+    let curRotY = 0;
 
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -111,12 +123,14 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
     }
 
     function move(e) {
-      if (!stage) return;
-      const r = stage.getBoundingClientRect();
+      if (!cv || !hero) return;
+      const r = cv.getBoundingClientRect();
       const now = performance.now();
       const px = (e.clientX - r.left) / r.width;
       const py = (e.clientY - r.top) / r.height;
       intro = false;
+
+      // Update liquid blob coordinates
       if (px > -0.1 && px < 1.1 && py > -0.1 && py < 1.1) {
         if (!active()) {
           sh.forEach((s) => {
@@ -131,10 +145,26 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
       } else {
         lm = Math.min(lm, now - 500);
       }
+
+      // Minor organic movement tracking cursor across hero viewport
+      if (!reduce) {
+        const heroRect = hero.getBoundingClientRect();
+        const hx = (e.clientX - (heroRect.left + heroRect.width * 0.5)) / (heroRect.width * 0.5);
+        const hy = (e.clientY - (heroRect.top + heroRect.height * 0.5)) / (heroRect.height * 0.5);
+
+        targetParallaxX = clamp(hx * 16, -16, 16);
+        targetParallaxY = clamp(hy * 10, -10, 10);
+        targetRotY = clamp(hx * 3.6, -3.6, 3.6);  // subtle yaw turn
+        targetRotX = clamp(-hy * 2.6, -2.6, 2.6); // subtle pitch tilt
+      }
     }
 
     function leave() {
       lm = Math.min(lm, performance.now() - 500);
+      targetParallaxX = 0;
+      targetParallaxY = 0;
+      targetRotX = 0;
+      targetRotY = 0;
     }
 
     hero.addEventListener('pointermove', move);
@@ -273,6 +303,15 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
       }
       wasAct = act;
 
+      // Smooth organic parallax interpolation
+      if (!reduce && parallaxWrapper) {
+        curParallaxX += (targetParallaxX - curParallaxX) * 0.08;
+        curParallaxY += (targetParallaxY - curParallaxY) * 0.08;
+        curRotX += (targetRotX - curRotX) * 0.08;
+        curRotY += (targetRotY - curRotY) * 0.08;
+        parallaxWrapper.style.transform = `translate3d(${curParallaxX.toFixed(2)}px, ${curParallaxY.toFixed(2)}px, 0) rotateX(${curRotX.toFixed(2)}deg) rotateY(${curRotY.toFixed(2)}deg)`;
+      }
+
       animFrameIdRef.current = requestAnimationFrame(frame);
     }
 
@@ -319,6 +358,7 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
         backgroundColor: 'var(--bg)',
         color: 'var(--ink)',
         fontFamily: '"Bricolage Grotesque", system-ui, -apple-system, sans-serif',
+        perspective: '1200px',
       }}
     >
       {/* Background Flow Curves */}
@@ -403,34 +443,43 @@ export default function Hero({ onExploreClick, onOpenAdmin, onTriggerTransition 
           animation: 'rise 1.2s cubic-bezier(.7,0,.2,1) both',
         }}
       >
-        {/* Source images for Canvas */}
-        <img
-          ref={baseImgRef}
-          id="base"
-          src="/assets/hero/slime-base.webp"
-          alt="Portrait of Mayuresh Sonawane"
-          width={900}
-          height={900}
-          className="hidden"
-        />
-        <img
-          ref={revImgRef}
-          id="rev"
-          src="/assets/hero/slime-rev.webp"
-          alt="Mayuresh Sonawane wearing Spider-Man mask"
-          width={900}
-          height={900}
-          className="hidden"
-        />
+        {/* Parallax & 3D Tilt Wrapper tracking cursor */}
+        <div
+          ref={parallaxWrapperRef}
+          className="relative w-full h-full will-change-transform"
+          style={{
+            transformStyle: 'preserve-3d',
+          }}
+        >
+          {/* Source images for Canvas */}
+          <img
+            ref={baseImgRef}
+            id="base"
+            src="/assets/hero/slime-base.webp"
+            alt="Portrait of Mayuresh Sonawane"
+            width={900}
+            height={900}
+            className="hidden"
+          />
+          <img
+            ref={revImgRef}
+            id="rev"
+            src="/assets/hero/slime-rev.webp"
+            alt="Mayuresh Sonawane wearing Spider-Man mask"
+            width={900}
+            height={900}
+            className="hidden"
+          />
 
-        {/* Liquid Slime Spring Canvas */}
-        <canvas
-          ref={canvasRef}
-          id="cv"
-          role="img"
-          aria-label="Interactive portrait of Mayuresh Sonawane"
-          className="absolute inset-0 w-full h-full block pointer-events-none"
-        />
+          {/* Liquid Slime Spring Canvas */}
+          <canvas
+            ref={canvasRef}
+            id="cv"
+            role="img"
+            aria-label="Interactive portrait of Mayuresh Sonawane"
+            className="absolute inset-0 w-full h-full block pointer-events-none"
+          />
+        </div>
       </div>
 
       {/* Bottom-Left Hint */}
